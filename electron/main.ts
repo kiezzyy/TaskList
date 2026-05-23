@@ -17,7 +17,7 @@ async function startDesktopBackend() {
   process.env.DATABASE_URL = `file:${path.join(dataDir, 'tasklist.db').replace(/\\/g, '/')}`;
   process.env.FRONTEND_ORIGIN = 'app://tasklist';
   process.env.ALLOW_FILE_ORIGIN = 'true';
-  process.env.PORT = '4000';
+  process.env.PORT = '5000';
 
   const backendRoot = path.join(app.getAppPath(), 'backend/dist');
   const [{ createServer }, { initializeDatabase }, { ensureSeedData }] = await Promise.all([
@@ -28,7 +28,7 @@ async function startDesktopBackend() {
 
   await initializeDatabase();
   await ensureSeedData();
-  desktopServer = createServer().listen(4000, '127.0.0.1');
+  desktopServer = createServer().listen(5000, '127.0.0.1');
 }
 
 async function createWindow() {
