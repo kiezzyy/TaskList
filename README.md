@@ -143,7 +143,7 @@ The release pipeline installs dependencies, generates the Prisma client, runs ba
 
 Release outputs:
 
-- `TaskList-<version>-win-x64.exe`
+- `TaskList-<1.0.0>-win-x64.exe`
 - `TaskList-<version>-mac-<arch>.dmg`
 - `TaskList-<version>-linux-<arch>.AppImage`
 
