@@ -15,7 +15,7 @@ I'm a big fan of Notion's clean layouts and organizational system, but I wanted 
 
 ---
 
-## 🔒 Frequently Asked Questions & Security
+## Frequently Asked Questions & Security
 
 ### Where is my information stored?
 Your tasks, subtasks, timers, and history are stored **100% locally** in an SQLite database on your own computer. 
@@ -42,11 +42,11 @@ To make this warning go away permanently for everyone, developers have to purcha
 
 ---
 
-## 🚀 How to Download & Install
+## How to Download & Install
 
 You don't need any technical setup to use TaskList. Just grab the installer for your operating system:
 
-👉 **[Download the Latest Release on GitHub](https://github.com/kiezzyy/TaskList/releases/latest)**
+->> **[Download the Latest Release on GitHub](https://github.com/kiezzyy/TaskList/releases/latest)**
 
 * **Windows:** Download the `.exe` installer.
 * **macOS:** Download the `.dmg` file.
@@ -54,7 +54,7 @@ You don't need any technical setup to use TaskList. Just grab the installer for 
 
 ---
 
-## 🛠️ For Developers (Local Setup)
+## For Developers (Local Setup)
 
 If you want to run or build the application from source, follow these steps.
 
