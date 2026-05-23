@@ -5,7 +5,14 @@ export async function parseWorkspaceFile(file: File) {
   if (file.type && file.type !== 'application/json') {
     throw new Error('Choose a JSON file exported from TaskList.');
   }
-  return JSON.parse(await file.text()) as unknown;
+  if (file.size > 20 * 1024 * 1024) {
+    throw new Error('Workspace backups must be 20 MB or smaller.');
+  }
+  try {
+    return JSON.parse(await file.text()) as unknown;
+  } catch {
+    throw new Error('The selected backup is not valid JSON.');
+  }
 }
 
 export function analyzeWorkspace(payload: unknown) {
@@ -16,7 +23,7 @@ export function analyzeWorkspace(payload: unknown) {
 }
 
 export function importWorkspace(payload: unknown, mode: 'merge' | 'replace') {
-  return apiRequest<{ mode: string; taskLists: number; tasks: number; sessions: number }>(
+  return apiRequest<{ mode: string; taskLists: number; tasks: number; subtasks: number; sessions: number }>(
     `/workspace/import?mode=${mode}`,
     {
       method: 'POST',

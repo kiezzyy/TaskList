@@ -11,8 +11,18 @@ export function createServer() {
   const app = express();
 
   app.use(helmet());
-  app.use(cors({ origin: config.frontendOrigin }));
-  app.use(express.json({ limit: '10mb' }));
+  app.use(
+    cors({
+      origin(origin, callback) {
+        if (config.allowFileOrigin && !origin) {
+          callback(null, true);
+          return;
+        }
+        callback(null, origin === config.frontendOrigin);
+      }
+    })
+  );
+  app.use(express.json({ limit: '25mb' }));
   app.use(morgan('dev'));
 
   app.get('/api/health', (_request, response) => {

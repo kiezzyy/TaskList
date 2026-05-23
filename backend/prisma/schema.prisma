@@ -12,8 +12,18 @@ model TaskStatus {
   name      String   @unique
   sortOrder Int
   tasks     Task[]
+  subtasks  Subtask[]
 
   @@map("task_statuses")
+}
+
+model TaskPriority {
+  id        String @id @default(cuid())
+  name      String @unique
+  sortOrder Int
+  tasks     Task[]
+
+  @@map("task_priorities")
 }
 
 model TaskList {
@@ -31,31 +41,87 @@ model Task {
   id          String        @id @default(cuid())
   listId      String
   statusId    String
+  priorityId  String
   name        String
   description String?
+  deletedAt   DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   list        TaskList      @relation(fields: [listId], references: [id], onDelete: Cascade)
   status      TaskStatus    @relation(fields: [statusId], references: [id])
+  priority    TaskPriority  @relation(fields: [priorityId], references: [id])
+  subtasks    Subtask[]
   sessions    TaskSession[]
 
   @@index([listId])
   @@index([statusId])
+  @@index([priorityId])
   @@index([name])
+  @@index([deletedAt])
   @@map("tasks")
+}
+
+model Subtask {
+  id          String        @id @default(cuid())
+  taskId      String
+  statusId    String
+  name        String
+  description String?
+  deletedAt   DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  task        Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  status      TaskStatus    @relation(fields: [statusId], references: [id])
+  sessions    TaskSession[]
+
+  @@index([taskId])
+  @@index([statusId])
+  @@index([deletedAt])
+  @@map("subtasks")
 }
 
 model TaskSession {
   id              String    @id @default(cuid())
-  taskId          String
+  taskId          String?
+  subtaskId       String?
   startedAt       DateTime
   endedAt         DateTime?
   durationSeconds Int       @default(0)
-  task            Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task            Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  subtask         Subtask?  @relation(fields: [subtaskId], references: [id], onDelete: Cascade)
 
   @@index([taskId])
+  @@index([subtaskId])
   @@index([startedAt])
   @@map("task_sessions")
+}
+
+model ActivityEvent {
+  id        String   @id @default(cuid())
+  type      String
+  entity    String
+  entityId  String?
+  message   String
+  payload   String?
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("activity_events")
+}
+
+model RecycleBinItem {
+  id        String   @id @default(cuid())
+  entity    String
+  entityId  String
+  label     String
+  payload   String
+  deletedAt DateTime @default(now())
+
+  @@index([entity])
+  @@index([deletedAt])
+  @@map("recycle_bin_items")
 }
 
 model WorkspaceMetadata {

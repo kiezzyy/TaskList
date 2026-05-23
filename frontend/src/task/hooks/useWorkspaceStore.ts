@@ -1,34 +1,47 @@
 import { create } from 'zustand';
 import { taskApi } from '../services/taskApi';
-import { Task, TaskList, TaskStatus, WorkspaceState } from '../services/types';
+import { Subtask, Task, TaskList, TaskPriority, TaskStatus, WorkspaceState } from '../services/types';
 
 interface WorkspaceStore extends WorkspaceState {
   selectedListId: string | null;
   statusFilter: string;
+  priorityFilter: string;
   searchQuery: string;
   error: string | null;
   loading: boolean;
   load: () => Promise<void>;
   setSelectedListId: (id: string | null) => void;
   setStatusFilter: (statusId: string) => void;
+  setPriorityFilter: (priorityId: string) => void;
   setSearchQuery: (query: string) => void;
   createList: (name: string) => Promise<void>;
   renameList: (id: string, name: string) => Promise<void>;
   deleteList: (id: string) => Promise<void>;
-  createTask: (input: { listId: string; name: string; description?: string | null; statusId?: string }) => Promise<void>;
-  updateTask: (id: string, input: Partial<{ name: string; description: string | null; statusId: string }>) => Promise<void>;
+  createTask: (input: { listId: string; name: string; description?: string | null; statusId?: string; priorityId?: string }) => Promise<void>;
+  updateTask: (id: string, input: Partial<{ name: string; description: string | null; statusId: string; priorityId: string }>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
+  createSubtask: (input: { taskId: string; name: string; description?: string | null; statusId?: string }) => Promise<void>;
+  updateSubtask: (id: string, input: Partial<{ name: string; description: string | null; statusId: string }>) => Promise<void>;
+  deleteSubtask: (id: string) => Promise<void>;
   startTimer: (id: string) => Promise<void>;
   pauseTimer: (id: string) => Promise<void>;
   resumeTimer: (id: string) => Promise<void>;
   stopTimer: (id: string) => Promise<void>;
+  startSubtaskTimer: (id: string) => Promise<void>;
+  pauseSubtaskTimer: (id: string) => Promise<void>;
+  resumeSubtaskTimer: (id: string) => Promise<void>;
+  stopSubtaskTimer: (id: string) => Promise<void>;
 }
 
 export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
   statuses: [],
+  priorities: [],
   lists: [],
+  history: [],
+  recycleBin: [],
   selectedListId: null,
   statusFilter: 'all',
+  priorityFilter: 'all',
   searchQuery: '',
   error: null,
   loading: false,
@@ -47,6 +60,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
   },
   setSelectedListId: (id) => set({ selectedListId: id }),
   setStatusFilter: (statusId) => set({ statusFilter: statusId }),
+  setPriorityFilter: (priorityId) => set({ priorityFilter: priorityId }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   createList: async (name) => {
     const list = await taskApi.createList(name);
@@ -58,10 +72,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
   },
   deleteList: async (id) => {
     await taskApi.deleteList(id);
-    set((state) => {
-      const lists = state.lists.filter((list) => list.id !== id);
-      return { lists, selectedListId: lists[0]?.id ?? null };
-    });
+    await get().load();
   },
   createTask: async (input) => {
     const task = await taskApi.createTask(input);
@@ -73,9 +84,19 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
   },
   deleteTask: async (id) => {
     await taskApi.deleteTask(id);
-    set((state) => ({
-      lists: state.lists.map((list) => ({ ...list, tasks: list.tasks.filter((task) => task.id !== id) }))
-    }));
+    await get().load();
+  },
+  createSubtask: async (input) => {
+    const subtask = await taskApi.createSubtask(input);
+    set((state) => ({ lists: addSubtaskToTask(state.lists, subtask) }));
+  },
+  updateSubtask: async (id, input) => {
+    const subtask = await taskApi.updateSubtask(id, input);
+    set((state) => ({ lists: updateSubtaskInLists(state.lists, subtask) }));
+  },
+  deleteSubtask: async (id) => {
+    await taskApi.deleteSubtask(id);
+    await get().load();
   },
   startTimer: async (id) => {
     await taskApi.startTimer(id);
@@ -92,24 +113,46 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
   stopTimer: async (id) => {
     await taskApi.stopTimer(id);
     await get().load();
+  },
+  startSubtaskTimer: async (id) => {
+    await taskApi.startSubtaskTimer(id);
+    await get().load();
+  },
+  pauseSubtaskTimer: async (id) => {
+    await taskApi.pauseSubtaskTimer(id);
+    await get().load();
+  },
+  resumeSubtaskTimer: async (id) => {
+    await taskApi.resumeSubtaskTimer(id);
+    await get().load();
+  },
+  stopSubtaskTimer: async (id) => {
+    await taskApi.stopSubtaskTimer(id);
+    await get().load();
   }
 }));
 
-export function getVisibleTasks(lists: TaskList[], selectedListId: string | null, statusFilter: string, searchQuery: string) {
+export function getVisibleTasks(lists: TaskList[], selectedListId: string | null, statusFilter: string, priorityFilter: string, searchQuery: string) {
   const list = lists.find((item) => item.id === selectedListId);
   const query = searchQuery.trim().toLowerCase();
   return (list?.tasks ?? []).filter((task) => {
     const matchesStatus = statusFilter === 'all' || task.statusId === statusFilter;
+    const matchesPriority = priorityFilter === 'all' || task.priorityId === priorityFilter;
     const matchesSearch =
       !query ||
       task.name.toLowerCase().includes(query) ||
-      (task.description ?? '').toLowerCase().includes(query);
-    return matchesStatus && matchesSearch;
+      (task.description ?? '').toLowerCase().includes(query) ||
+      task.subtasks.some((subtask) => subtask.name.toLowerCase().includes(query));
+    return matchesStatus && matchesPriority && matchesSearch;
   });
 }
 
 export function getStatusByName(statuses: TaskStatus[], name: string) {
   return statuses.find((status) => status.name === name);
+}
+
+export function getPriorityByName(priorities: TaskPriority[], name: string) {
+  return priorities.find((priority) => priority.name === name);
 }
 
 function addTaskToList(lists: TaskList[], task: Task) {
@@ -120,6 +163,23 @@ function updateTaskInLists(lists: TaskList[], task: Task) {
   return lists.map((list) => ({
     ...list,
     tasks: list.id === task.listId ? list.tasks.map((item) => (item.id === task.id ? task : item)) : list.tasks
+  }));
+}
+
+function addSubtaskToTask(lists: TaskList[], subtask: Subtask) {
+  return lists.map((list) => ({
+    ...list,
+    tasks: list.tasks.map((task) => (task.id === subtask.taskId ? { ...task, subtasks: [subtask, ...task.subtasks] } : task))
+  }));
+}
+
+function updateSubtaskInLists(lists: TaskList[], subtask: Subtask) {
+  return lists.map((list) => ({
+    ...list,
+    tasks: list.tasks.map((task) => ({
+      ...task,
+      subtasks: task.subtasks.map((item) => (item.id === subtask.id ? { ...item, ...subtask } : item))
+    }))
   }));
 }
 
