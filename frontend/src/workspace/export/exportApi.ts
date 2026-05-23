@@ -1,5 +1,7 @@
+import { apiBase } from '../../shared/api';
+
 export async function downloadWorkspaceExport() {
-  const response = await fetch('http://localhost:4000/api/workspace/export');
+  const response = await fetch(`${apiBase}/workspace/export`);
   if (!response.ok) {
     throw new Error('Workspace export failed.');
   }

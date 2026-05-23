@@ -1,4 +1,6 @@
-const apiBase = 'http://localhost:4000/api';
+export const apiBase = window.location.protocol === 'file:'
+  ? 'http://localhost:5000/api'
+  : 'http://localhost:4000/api';
 
 export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${apiBase}${path}`, {
