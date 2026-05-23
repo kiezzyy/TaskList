@@ -43,6 +43,12 @@ The build command compiles the backend, frontend, and Electron entry points.
 
 ## Desktop Installers
 
+Download the latest ready-to-install desktop builds from:
+
+[TaskList GitHub Releases](https://github.com/kiezzyy/TaskList/releases/latest)
+
+End users do not need Node.js, npm, a terminal, or any development setup. Download the installer for your operating system, install it, and open TaskList.
+
 TaskList uses Electron Builder to create normal desktop installers:
 
 ```bash
@@ -143,9 +149,11 @@ The release pipeline installs dependencies, generates the Prisma client, runs ba
 
 Release outputs:
 
-- `TaskList-<1.0.0>-win-x64.exe`
-- `TaskList-<version>-mac-<arch>.dmg`
-- `TaskList-<version>-linux-<arch>.AppImage`
+- Windows: `TaskList-1.0.0-win-x64.exe`
+- macOS: `TaskList-1.0.0-mac-<arch>.dmg`
+- Linux: `TaskList-1.0.0-linux-<arch>.AppImage`
+
+The filenames above are examples. The actual downloadable files are attached to the GitHub Release after the release workflow finishes.
 
 ## Security Notes
 
