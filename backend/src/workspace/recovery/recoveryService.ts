@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { prisma } from '../../database/prisma.js';
 import { recordActivity } from '../../task/services/activityService.js';
+import { reconcileCompletedTaskTimers } from '../../task/services/taskService.js';
 import type { WorkspaceBackup } from '../validation/workspaceSchema.js';
 
 type Transaction = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
@@ -22,6 +23,7 @@ export async function restoreWorkspace(backup: WorkspaceBackup, mode: 'merge' | 
   });
 
   await recordActivity('imported', 'workspace', null, `Imported workspace using ${mode} mode`, summary);
+  await reconcileCompletedTaskTimers();
   return summary;
 }
 

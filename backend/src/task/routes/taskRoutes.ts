@@ -10,6 +10,7 @@ import {
   removeTask,
   removeTaskList,
   renameTaskList,
+  restoreDeletedTask,
   startSubtaskTimer,
   startTaskTimer,
   stopSubtaskTimer,
@@ -25,6 +26,7 @@ taskRouter.delete('/lists/:id', removeTaskList);
 taskRouter.post('/tasks', createNewTask);
 taskRouter.patch('/tasks/:id', editTask);
 taskRouter.delete('/tasks/:id', removeTask);
+taskRouter.post('/tasks/:id/restore', restoreDeletedTask);
 taskRouter.post('/tasks/:id/timer/start', startTaskTimer);
 taskRouter.post('/tasks/:id/timer/pause', stopTaskTimer);
 taskRouter.post('/tasks/:id/timer/resume', startTaskTimer);

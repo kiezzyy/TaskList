@@ -35,10 +35,11 @@ async function createWindow() {
   await startDesktopBackend();
 
   const window = new BrowserWindow({
-    width: 1280,
-    height: 820,
-    minWidth: 980,
-    minHeight: 680,
+    width: 1120,
+    height: 720,
+    minWidth: 760,
+    minHeight: 540,
+    resizable: true,
     title: 'TaskList',
     backgroundColor: '#f4f4f5',
     webPreferences: {

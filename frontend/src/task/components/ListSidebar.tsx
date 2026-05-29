@@ -1,128 +1,116 @@
-import { BarChart3, Check, Clock3, FolderKanban, History, LayoutDashboard, Pencil, Plus, Trash2 } from 'lucide-react';
-import { FormEvent, useMemo, useState } from 'react';
+import { Archive, FolderKanban, History, LayoutDashboard, RotateCcw } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useWorkspaceStore } from '../hooks/useWorkspaceStore';
-import { formatDuration } from '../utils/time';
+import { RecycleBinItem } from '../services/types';
+import { formatDateTime } from '../utils/time';
 
-export function ListSidebar() {
-  const { lists, selectedListId, setSelectedListId, createList, renameList, deleteList } = useWorkspaceStore();
-  const [name, setName] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState('');
+export function ListSidebar({ onOpenHistory }: { onOpenHistory: () => void }) {
+  const { lists, selectedListId, recycleBin, restoreTask } = useWorkspaceStore();
+  const selectedList = lists.find((list) => list.id === selectedListId);
+  const deletedTasks = useMemo(
+    () => recycleBin.filter((item) => item.entity === 'task' && getRecycleListId(item.payload) === selectedListId),
+    [recycleBin, selectedListId]
+  );
   const totals = useMemo(
     () => ({
+      tabs: lists.length,
       tasks: lists.reduce((count, list) => count + list.tasks.length, 0),
-      seconds: lists.reduce((count, list) => count + list.tasks.reduce((taskTotal, task) => taskTotal + task.totalDurationSeconds, 0), 0)
+      deleted: deletedTasks.length
     }),
-    [lists]
+    [lists, deletedTasks]
   );
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    if (!name.trim()) {
-      return;
-    }
-    await createList(name.trim());
-    setName('');
-  }
-
-  async function saveRename(id: string) {
-    if (editingName.trim()) {
-      await renameList(id, editingName.trim());
-    }
-    setEditingId(null);
-  }
-
   return (
-    <div className="flex h-full flex-col gap-5 p-4">
+    <div className="flex h-full flex-col gap-5 p-5">
       <div className="flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-lg bg-zinc-950 text-white">
+        <div className="grid h-10 w-10 place-items-center rounded-lg bg-zinc-950 text-white shadow-sm">
           <FolderKanban size={19} />
         </div>
-        <div>
-          <h1 className="text-xl font-semibold tracking-normal">TaskList</h1>
-          <p className="text-xs text-zinc-500">Local workspace</p>
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-semibold tracking-normal">TaskList</h1>
+          <p className="truncate text-xs text-zinc-500">Local workspace</p>
         </div>
       </div>
 
-      <nav className="grid gap-1 text-sm">
-        <a className="flex items-center gap-2 rounded-md bg-zinc-900 px-3 py-2 text-white" href="#workspace">
+      <nav className="flex min-h-0 flex-1 flex-col gap-1 text-sm">
+        <a className="flex items-center gap-2 rounded-lg bg-zinc-950 px-3 py-2.5 font-medium text-white shadow-sm transition hover:-translate-y-0.5" href="#workspace">
           <LayoutDashboard size={16} /> Board
         </a>
-        <a className="flex items-center gap-2 rounded-md px-3 py-2 text-zinc-600 hover:bg-zinc-100" href="#activity">
+        <button
+          className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-zinc-600 transition-all duration-200 hover:bg-zinc-100 hover:font-semibold hover:text-zinc-950"
+          onClick={onOpenHistory}
+        >
           <History size={16} /> History
-        </a>
-        <div className="flex items-center gap-2 rounded-md px-3 py-2 text-zinc-600">
-          <Clock3 size={16} /> {formatDuration(totals.seconds)}
+        </button>
+        <div className="flex min-h-0 flex-1 flex-col rounded-lg py-2.5 text-zinc-600">
+          <div className="flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-2">
+              <Archive size={16} /> Deleted Area
+            </span>
+            <span className="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-zinc-500 shadow-sm">{totals.deleted}</span>
+          </div>
+          <div className="mt-2 grid min-h-0 flex-1 content-start gap-2 overflow-y-auto overflow-x-hidden pr-1">
+            {deletedTasks.map((item) => (
+              <DeletedSidebarTask key={item.id} item={item} onRestore={() => restoreTask(item.entityId)} />
+            ))}
+            {deletedTasks.length === 0 ? <p className="px-1 py-1 text-xs text-zinc-400">No deleted tasks.</p> : null}
+          </div>
         </div>
       </nav>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-3">
-        <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-          <BarChart3 size={16} /> Workspace Stats
-        </div>
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          <div className="rounded-md bg-zinc-50 p-2">
-            <p className="text-lg font-semibold">{lists.length}</p>
+      <section className="mt-auto grid gap-3 border-t border-zinc-200 pt-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">Workspace Stats</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <p className="text-2xl font-semibold text-zinc-950">{totals.tabs}</p>
             <p className="text-xs text-zinc-500">Tabs</p>
           </div>
-          <div className="rounded-md bg-zinc-50 p-2">
-            <p className="text-lg font-semibold">{totals.tasks}</p>
+          <div>
+            <p className="text-2xl font-semibold text-zinc-950">{totals.tasks}</p>
             <p className="text-xs text-zinc-500">Tasks</p>
           </div>
         </div>
-      </section>
-
-      <section className="min-h-0 flex-1">
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">Tabs</p>
-        </div>
-        <form className="mb-3 flex gap-2" onSubmit={submit}>
-          <input
-            className="min-w-0 flex-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-zinc-900"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="New tab"
-          />
-          <button className="grid h-10 w-10 place-items-center rounded-md bg-zinc-950 text-white" title="Create tab">
-            <Plus size={18} />
-          </button>
-        </form>
-
-        <div className="max-h-[38vh] space-y-2 overflow-auto pr-1 lg:max-h-none">
-          {lists.map((list) => (
-            <div key={list.id} className={`rounded-lg border p-2 transition ${selectedListId === list.id ? 'border-zinc-900 bg-white shadow-sm' : 'border-transparent hover:bg-zinc-100'}`}>
-              {editingId === list.id ? (
-                <div className="flex gap-2">
-                  <input className="min-w-0 flex-1 rounded border border-zinc-300 px-2 py-1 text-sm" value={editingName} onChange={(event) => setEditingName(event.target.value)} />
-                  <button className="grid h-8 w-8 place-items-center rounded bg-zinc-950 text-white" onClick={() => saveRename(list.id)} title="Save tab">
-                    <Check size={16} />
-                  </button>
-                </div>
-              ) : (
-                <button className="w-full text-left" onClick={() => setSelectedListId(list.id)}>
-                  <span className="block truncate text-sm font-medium">{list.name}</span>
-                  <span className="text-xs text-zinc-500">{list.tasks.length} tasks</span>
-                </button>
-              )}
-              <div className="mt-2 flex gap-1">
-                <button
-                  className="grid h-8 w-8 place-items-center rounded text-zinc-600 hover:bg-zinc-100"
-                  title="Rename tab"
-                  onClick={() => {
-                    setEditingId(list.id);
-                    setEditingName(list.name);
-                  }}
-                >
-                  <Pencil size={15} />
-                </button>
-                <button className="grid h-8 w-8 place-items-center rounded text-red-600 hover:bg-red-50" title="Delete tab" onClick={() => deleteList(list.id)}>
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <p className="truncate text-xs text-zinc-500">{selectedList ? selectedList.name : 'No active tab'}</p>
       </section>
     </div>
   );
+}
+
+function DeletedSidebarTask({ item, onRestore }: { item: RecycleBinItem; onRestore: () => Promise<void> }) {
+  const [restoring, setRestoring] = useState(false);
+
+  async function restore() {
+    setRestoring(true);
+    try {
+      await onRestore();
+    } finally {
+      setRestoring(false);
+    }
+  }
+
+  return (
+    <div className={`min-w-0 rounded-md border border-zinc-200 bg-white p-2 transition-all duration-200 ${restoring ? 'scale-95 opacity-60' : 'scale-100 opacity-100'}`}>
+      <p className="min-w-0 truncate text-xs font-medium text-zinc-800">{item.label}</p>
+      <p className="mt-0.5 min-w-0 truncate text-[11px] text-zinc-400">{formatDateTime(item.deletedAt)}</p>
+      <div className="mt-2 flex justify-end overflow-hidden">
+        <button
+          className="inline-flex max-w-full items-center gap-1 rounded-md bg-zinc-950 px-2 py-1 text-[11px] font-medium text-white transition hover:-translate-y-0.5 hover:bg-zinc-800 disabled:opacity-60"
+          onClick={restore}
+          disabled={restoring}
+          title="Restore task"
+        >
+          <RotateCcw className={`transition-transform duration-200 ${restoring ? '-rotate-180' : 'rotate-0'}`} size={12} />
+          Restore
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function getRecycleListId(payload: string) {
+  try {
+    return (JSON.parse(payload) as { listId?: string }).listId ?? null;
+  } catch {
+    return null;
+  }
 }

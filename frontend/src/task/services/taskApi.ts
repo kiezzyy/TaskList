@@ -1,5 +1,5 @@
 import { apiRequest } from '../../shared/api';
-import { Subtask, Task, TaskList, WorkspaceState } from './types';
+import { Task, TaskList, WorkspaceState } from './types';
 
 export const taskApi = {
   getState: () => apiRequest<WorkspaceState>('/state'),
@@ -11,19 +11,9 @@ export const taskApi = {
   updateTask: (id: string, input: Partial<{ name: string; description: string | null; statusId: string; priorityId: string }>) =>
     apiRequest<Task>(`/tasks/${id}`, patch(input)),
   deleteTask: (id: string) => apiRequest(`/tasks/${id}`, { method: 'DELETE' }),
-  createSubtask: (input: { taskId: string; name: string; description?: string | null; statusId?: string }) =>
-    apiRequest<Subtask>('/subtasks', post(input)),
-  updateSubtask: (id: string, input: Partial<{ name: string; description: string | null; statusId: string }>) =>
-    apiRequest<Subtask>(`/subtasks/${id}`, patch(input)),
-  deleteSubtask: (id: string) => apiRequest(`/subtasks/${id}`, { method: 'DELETE' }),
+  restoreTask: (id: string) => apiRequest<Task>(`/tasks/${id}/restore`, post({})),
   startTimer: (id: string) => apiRequest(`/tasks/${id}/timer/start`, post({})),
-  pauseTimer: (id: string) => apiRequest(`/tasks/${id}/timer/pause`, post({})),
-  resumeTimer: (id: string) => apiRequest(`/tasks/${id}/timer/resume`, post({})),
-  stopTimer: (id: string) => apiRequest(`/tasks/${id}/timer/stop`, post({})),
-  startSubtaskTimer: (id: string) => apiRequest(`/subtasks/${id}/timer/start`, post({})),
-  pauseSubtaskTimer: (id: string) => apiRequest(`/subtasks/${id}/timer/pause`, post({})),
-  resumeSubtaskTimer: (id: string) => apiRequest(`/subtasks/${id}/timer/resume`, post({})),
-  stopSubtaskTimer: (id: string) => apiRequest(`/subtasks/${id}/timer/stop`, post({}))
+  stopTimer: (id: string) => apiRequest(`/tasks/${id}/timer/stop`, post({}))
 };
 
 function post(body: unknown): RequestInit {
