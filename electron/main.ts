@@ -34,10 +34,9 @@ async function startDesktopBackend() {
   await ensureSeedData();
 
   return new Promise<number>((resolve, reject) => {
-    const server = createServer();
-    server.once('error', reject);
-    desktopServer = server.listen(0, electronAppConfig.backendHost, () => {
-      const address = server.address();
+    const expressApp = createServer();
+    const httpServer = expressApp.listen(0, electronAppConfig.backendHost, () => {
+      const address = httpServer.address();
       if (address && typeof address === 'object') {
         desktopPort = address.port;
         resolve(address.port);
@@ -46,6 +45,8 @@ async function startDesktopBackend() {
 
       reject(new Error('TaskList backend started without a TCP port.'));
     });
+    httpServer.once('error', reject);
+    desktopServer = httpServer;
   });
 }
 
