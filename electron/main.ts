@@ -42,6 +42,9 @@ async function createWindow() {
     resizable: true,
     title: 'TaskList',
     backgroundColor: '#f4f4f5',
+    icon: app.isPackaged
+      ? path.join(__dirname, '../frontend/dist/favicon.ico')
+      : path.join(__dirname, '../build/icon.ico'),
     webPreferences: {
       sandbox: true,
       contextIsolation: true,
