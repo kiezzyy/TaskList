@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { LayoutGrid, PanelTop, Plus, Search, SlidersHorizontal } from 'lucide-react';
 import { DragEvent, useMemo, useState } from 'react';
 import { getVisibleTasks, useWorkspaceStore } from '../hooks/useWorkspaceStore';
 import { Task, TaskStatus } from '../services/types';
@@ -27,6 +27,8 @@ export function TaskBoard() {
     updateTask
   } = useWorkspaceStore();
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [compactMode, setCompactMode] = useState(false);
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
   const selectedList = lists.find((list) => list.id === selectedListId);
   const tasks = getVisibleTasks(lists, selectedListId, statusFilter, priorityFilter, searchQuery);
   const orderedStatuses = useMemo(() => [...statuses].sort((first, second) => first.sortOrder - second.sortOrder), [statuses]);
@@ -52,7 +54,7 @@ export function TaskBoard() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div id="workspace" className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">Workspace</p>
@@ -61,7 +63,7 @@ export function TaskBoard() {
             {selectedList.tasks.length} tasks across {orderedStatuses.length} kanban stages
           </p>
         </div>
-        <div className="grid gap-2 sm:grid-cols-[minmax(180px,280px)_auto_auto]">
+        <div className="grid gap-2 sm:grid-cols-[minmax(180px,280px)_auto_auto_auto_auto]">
           <label className="relative">
             <Search className="absolute left-3 top-2.5 text-zinc-400" size={16} />
             <input
@@ -90,17 +92,30 @@ export function TaskBoard() {
               </option>
             ))}
           </select>
+          <button
+            className={`grid h-10 w-10 place-items-center rounded-md border transition-all duration-200 hover:-translate-y-0.5 ${
+              compactMode ? 'border-zinc-950 bg-zinc-950 text-white shadow-sm' : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50'
+            }`}
+            title={compactMode ? 'Disable compact cards' : 'Enable compact cards'}
+            onClick={() => setCompactMode((value) => !value)}
+          >
+            {compactMode ? <PanelTop className="transition-transform duration-200 rotate-180" size={17} /> : <LayoutGrid className="transition-transform duration-200" size={17} />}
+          </button>
+          <button className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-zinc-800" onClick={() => setTaskModalOpen(true)}>
+            <Plus size={16} /> Add Task
+          </button>
         </div>
       </div>
 
-      <TaskForm listId={selectedList.id} />
+      <TaskForm listId={selectedList.id} open={taskModalOpen} onClose={() => setTaskModalOpen(false)} />
 
       <div className="grid min-h-[28rem] gap-3 overflow-x-auto pb-2 lg:grid-cols-4">
         {orderedStatuses.map((status) => (
           <KanbanColumn
             key={status.id}
             status={status}
-            tasks={tasks.filter((task) => task.statusId === status.id)}
+            tasks={sortColumnTasks(tasks.filter((task) => task.statusId === status.id))}
+            compact={compactMode}
             onDrop={moveTask}
             onDragStart={setDraggedTaskId}
           />
@@ -110,14 +125,20 @@ export function TaskBoard() {
   );
 }
 
+function sortColumnTasks(tasks: Task[]) {
+  return [...tasks].sort((first, second) => new Date(first.updatedAt).getTime() - new Date(second.updatedAt).getTime());
+}
+
 function KanbanColumn({
   status,
   tasks,
+  compact,
   onDrop,
   onDragStart
 }: {
   status: TaskStatus;
   tasks: Task[];
+  compact: boolean;
   onDrop: (event: DragEvent, statusId: string) => Promise<void>;
   onDragStart: (taskId: string) => void;
 }) {
@@ -125,7 +146,7 @@ function KanbanColumn({
 
   return (
     <section
-      className={`flex min-h-[26rem] min-w-[18rem] flex-col rounded-lg border border-zinc-200 ${style.bg} p-3 transition`}
+      className={`flex min-h-[26rem] min-w-[18rem] flex-col rounded-lg border border-zinc-200 ${style.bg} p-3 transition-all duration-200`}
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => onDrop(event, status.id)}
     >
@@ -136,9 +157,9 @@ function KanbanColumn({
         </div>
         <span className="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-zinc-500 shadow-sm">{tasks.length}</span>
       </div>
-      <div className="grid gap-3">
+      <div className={`grid transition-all duration-200 ${compact ? 'gap-2' : 'gap-3'}`}>
         {tasks.map((task) => (
-          <TaskCard key={task.id} task={task} onDragStart={onDragStart} />
+          <TaskCard key={task.id} task={task} compact={compact} onDragStart={onDragStart} />
         ))}
         {tasks.length === 0 ? <div className="rounded-lg border border-dashed border-zinc-300 bg-white/60 p-4 text-center text-sm text-zinc-500">Drop tasks here</div> : null}
       </div>

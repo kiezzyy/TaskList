@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { taskApi } from '../services/taskApi';
-import { Subtask, Task, TaskList, TaskPriority, TaskStatus, WorkspaceState } from '../services/types';
+import { Task, TaskList, TaskPriority, TaskStatus, WorkspaceState } from '../services/types';
 
 interface WorkspaceStore extends WorkspaceState {
   selectedListId: string | null;
@@ -20,17 +20,9 @@ interface WorkspaceStore extends WorkspaceState {
   createTask: (input: { listId: string; name: string; description?: string | null; statusId?: string; priorityId?: string }) => Promise<void>;
   updateTask: (id: string, input: Partial<{ name: string; description: string | null; statusId: string; priorityId: string }>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
-  createSubtask: (input: { taskId: string; name: string; description?: string | null; statusId?: string }) => Promise<void>;
-  updateSubtask: (id: string, input: Partial<{ name: string; description: string | null; statusId: string }>) => Promise<void>;
-  deleteSubtask: (id: string) => Promise<void>;
+  restoreTask: (id: string) => Promise<void>;
   startTimer: (id: string) => Promise<void>;
-  pauseTimer: (id: string) => Promise<void>;
-  resumeTimer: (id: string) => Promise<void>;
   stopTimer: (id: string) => Promise<void>;
-  startSubtaskTimer: (id: string) => Promise<void>;
-  pauseSubtaskTimer: (id: string) => Promise<void>;
-  resumeSubtaskTimer: (id: string) => Promise<void>;
-  stopSubtaskTimer: (id: string) => Promise<void>;
 }
 
 export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
@@ -51,7 +43,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
       const state = await taskApi.getState();
       set((current) => ({
         ...state,
-        selectedListId: current.selectedListId ?? state.lists[0]?.id ?? null,
+        selectedListId: state.lists.some((list) => list.id === current.selectedListId) ? current.selectedListId : state.lists[0]?.id ?? null,
         loading: false
       }));
     } catch (error) {
@@ -86,48 +78,16 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
     await taskApi.deleteTask(id);
     await get().load();
   },
-  createSubtask: async (input) => {
-    const subtask = await taskApi.createSubtask(input);
-    set((state) => ({ lists: addSubtaskToTask(state.lists, subtask) }));
-  },
-  updateSubtask: async (id, input) => {
-    const subtask = await taskApi.updateSubtask(id, input);
-    set((state) => ({ lists: updateSubtaskInLists(state.lists, subtask) }));
-  },
-  deleteSubtask: async (id) => {
-    await taskApi.deleteSubtask(id);
+  restoreTask: async (id) => {
+    await taskApi.restoreTask(id);
     await get().load();
   },
   startTimer: async (id) => {
     await taskApi.startTimer(id);
     await get().load();
   },
-  pauseTimer: async (id) => {
-    await taskApi.pauseTimer(id);
-    await get().load();
-  },
-  resumeTimer: async (id) => {
-    await taskApi.resumeTimer(id);
-    await get().load();
-  },
   stopTimer: async (id) => {
     await taskApi.stopTimer(id);
-    await get().load();
-  },
-  startSubtaskTimer: async (id) => {
-    await taskApi.startSubtaskTimer(id);
-    await get().load();
-  },
-  pauseSubtaskTimer: async (id) => {
-    await taskApi.pauseSubtaskTimer(id);
-    await get().load();
-  },
-  resumeSubtaskTimer: async (id) => {
-    await taskApi.resumeSubtaskTimer(id);
-    await get().load();
-  },
-  stopSubtaskTimer: async (id) => {
-    await taskApi.stopSubtaskTimer(id);
     await get().load();
   }
 }));
@@ -138,11 +98,7 @@ export function getVisibleTasks(lists: TaskList[], selectedListId: string | null
   return (list?.tasks ?? []).filter((task) => {
     const matchesStatus = statusFilter === 'all' || task.statusId === statusFilter;
     const matchesPriority = priorityFilter === 'all' || task.priorityId === priorityFilter;
-    const matchesSearch =
-      !query ||
-      task.name.toLowerCase().includes(query) ||
-      (task.description ?? '').toLowerCase().includes(query) ||
-      task.subtasks.some((subtask) => subtask.name.toLowerCase().includes(query));
+    const matchesSearch = !query || task.name.toLowerCase().includes(query) || (task.description ?? '').toLowerCase().includes(query);
     return matchesStatus && matchesPriority && matchesSearch;
   });
 }
@@ -163,23 +119,6 @@ function updateTaskInLists(lists: TaskList[], task: Task) {
   return lists.map((list) => ({
     ...list,
     tasks: list.id === task.listId ? list.tasks.map((item) => (item.id === task.id ? task : item)) : list.tasks
-  }));
-}
-
-function addSubtaskToTask(lists: TaskList[], subtask: Subtask) {
-  return lists.map((list) => ({
-    ...list,
-    tasks: list.tasks.map((task) => (task.id === subtask.taskId ? { ...task, subtasks: [subtask, ...task.subtasks] } : task))
-  }));
-}
-
-function updateSubtaskInLists(lists: TaskList[], subtask: Subtask) {
-  return lists.map((list) => ({
-    ...list,
-    tasks: list.tasks.map((task) => ({
-      ...task,
-      subtasks: task.subtasks.map((item) => (item.id === subtask.id ? { ...item, ...subtask } : item))
-    }))
   }));
 }
 

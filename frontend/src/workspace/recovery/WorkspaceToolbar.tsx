@@ -1,11 +1,11 @@
-import { Check, Download, FolderOpen, Pencil, Plus, Upload } from 'lucide-react';
+import { Check, Download, FolderOpen, Pencil, Plus, Trash2, Upload } from 'lucide-react';
 import { ChangeEvent, FormEvent, useRef, useState } from 'react';
 import { useWorkspaceStore } from '../../task/hooks/useWorkspaceStore';
 import { downloadWorkspaceExport } from '../export/exportApi';
 import { analyzeWorkspace, importWorkspace, parseWorkspaceFile } from '../import/importApi';
 
 export function WorkspaceToolbar() {
-  const { lists, selectedListId, setSelectedListId, createList, renameList, load } = useWorkspaceStore();
+  const { lists, selectedListId, setSelectedListId, createList, renameList, deleteList, load } = useWorkspaceStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -53,7 +53,7 @@ export function WorkspaceToolbar() {
       }
       const summary = await importWorkspace(payload, normalizedChoice);
       await load();
-      setMessage(`Import complete: ${summary.taskLists} tabs, ${summary.tasks} tasks, ${summary.subtasks} subtasks, ${summary.sessions} sessions.`);
+      setMessage(`Import complete: ${summary.taskLists} tabs and ${summary.tasks} tasks.`);
     } catch (error) {
       setMessage(getMessage(error));
     } finally {
@@ -129,6 +129,16 @@ export function WorkspaceToolbar() {
                 }}
               >
                 <Pencil size={12} />
+              </span>
+              <span
+                className="grid h-5 w-5 place-items-center rounded-full opacity-70 hover:bg-white/20"
+                title="Delete tab"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void deleteList(list.id);
+                }}
+              >
+                <Trash2 size={12} />
               </span>
             </button>
           )

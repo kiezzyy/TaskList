@@ -36,6 +36,7 @@ function withComputedTask(task: TaskWithRelations) {
 }
 
 export async function getWorkspaceState() {
+  await reconcileCompletedTaskTimers();
   const [statuses, priorities, lists, history, recycleBin] = await Promise.all([
     prisma.taskStatus.findMany({ orderBy: { sortOrder: 'asc' } }),
     prisma.taskPriority.findMany({ orderBy: { sortOrder: 'asc' } }),
@@ -99,6 +100,14 @@ export async function createTask(input: { listId: string; name: string; descript
 export async function updateTask(id: string, input: Prisma.TaskUpdateInput) {
   const task = await prisma.task.update({ where: { id }, data: input, include: taskInclude });
   await recordActivity('updated', 'task', id, `Updated task "${task.name}"`, task);
+  if (task.status.name === 'Complete') {
+    await stopOpenTaskSessions(id, 'Timer stopped automatically because task was completed');
+    const completedTask = await prisma.task.findUnique({ where: { id }, include: taskInclude });
+    if (!completedTask) {
+      throw notFound('Task was not found');
+    }
+    return withComputedTask(completedTask);
+  }
   return withComputedTask(task);
 }
 
@@ -112,6 +121,21 @@ export async function deleteTask(id: string) {
   });
   await prisma.task.update({ where: { id }, data: { deletedAt: new Date() } });
   await recordActivity('deleted', 'task', id, `Moved task "${task.name}" to recycle bin`);
+}
+
+export async function restoreTask(id: string) {
+  const task = await prisma.task.findUnique({ where: { id }, include: taskInclude });
+  if (!task) {
+    throw notFound('Task was not found');
+  }
+  const restored = await prisma.task.update({
+    where: { id },
+    data: { deletedAt: null },
+    include: taskInclude
+  });
+  await prisma.recycleBinItem.deleteMany({ where: { entity: 'task', entityId: id } });
+  await recordActivity('restored', 'task', id, `Restored task "${restored.name}"`, restored);
+  return withComputedTask(restored);
 }
 
 export async function createSubtask(input: { taskId: string; name: string; description?: string | null; statusId?: string }) {
@@ -147,6 +171,9 @@ export async function deleteSubtask(id: string) {
 export async function startTimer(target: { taskId?: string; subtaskId?: string }) {
   validateTimerTarget(target);
   return withTimerLock(target, async () => {
+    if (target.taskId) {
+      await ensureTaskTimerCanStart(target.taskId);
+    }
     const open = await getOpenSession(target);
     if (open) {
       return open;
@@ -181,12 +208,54 @@ export async function stopTimer(target: { taskId?: string; subtaskId?: string })
   });
 }
 
+export async function reconcileCompletedTaskTimers() {
+  const openCompletedTaskSessions = await prisma.taskSession.findMany({
+    where: { endedAt: null, task: { status: { name: 'Complete' } } },
+    select: { taskId: true }
+  });
+  const taskIds = [...new Set(openCompletedTaskSessions.map((session) => session.taskId).filter((taskId): taskId is string => Boolean(taskId)))];
+  await Promise.all(taskIds.map((taskId) => stopOpenTaskSessions(taskId, 'Timer stopped automatically because completed task had an active session')));
+}
+
 async function getOpenSession(target: { taskId?: string; subtaskId?: string }) {
   return prisma.taskSession.findFirst({ where: { ...target, endedAt: null }, orderBy: { startedAt: 'desc' } });
 }
 
 async function getOpenSessions(target: { taskId?: string; subtaskId?: string }) {
   return prisma.taskSession.findMany({ where: { ...target, endedAt: null }, orderBy: { startedAt: 'desc' } });
+}
+
+async function stopOpenTaskSessions(taskId: string, message: string) {
+  return withTimerLock({ taskId }, async () => {
+    const sessions = await getOpenSessions({ taskId });
+    if (!sessions.length) {
+      return null;
+    }
+    const endedAt = new Date();
+    const updates = await Promise.all(
+      sessions.map((session) =>
+        prisma.taskSession.update({
+          where: { id: session.id },
+          data: { endedAt, durationSeconds: durationSeconds(session.startedAt, endedAt) }
+        })
+      )
+    );
+    const updated = updates[0];
+    await recordActivity('timer_stopped', 'task', taskId, message, updated);
+    return updated;
+  });
+}
+
+async function ensureTaskTimerCanStart(taskId: string) {
+  const task = await prisma.task.findUnique({ where: { id: taskId }, include: { status: true } });
+  if (!task) {
+    throw notFound('Task was not found');
+  }
+  if (task.status.name === 'Complete') {
+    const error = new Error('Completed tasks cannot start timers. Move the task out of Complete first.');
+    Object.assign(error, { statusCode: 409 });
+    throw error;
+  }
 }
 
 async function withTimerLock<T>(target: { taskId?: string; subtaskId?: string }, operation: () => Promise<T>) {

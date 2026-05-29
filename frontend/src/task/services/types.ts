@@ -76,6 +76,7 @@ export interface ActivityEvent {
   entity: string;
   entityId: string | null;
   message: string;
+  payload: string | null;
   createdAt: string;
 }
 
@@ -84,6 +85,7 @@ export interface RecycleBinItem {
   entity: string;
   entityId: string;
   label: string;
+  payload: string;
   deletedAt: string;
 }
 
