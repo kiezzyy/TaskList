@@ -1,6 +1,6 @@
 {
   "name": "tasklist-workspace",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A local-first desktop workspace for kanban tasks, timers, and JSON backups.",
   "author": "TaskList",
   "private": true,
