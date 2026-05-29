@@ -3,21 +3,25 @@ import type { Server } from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { electronAppConfig } from './config.js';
 
-const devUrl = 'http://localhost:5173';
 let desktopServer: Server | null = null;
+let desktopPort: number | null = null;
 
 async function startDesktopBackend() {
-  if (!app.isPackaged || desktopServer) {
-    return;
+  if (!app.isPackaged) {
+    return null;
+  }
+
+  if (desktopServer && desktopPort) {
+    return desktopPort;
   }
 
   const dataDir = app.getPath('userData');
   fs.mkdirSync(dataDir, { recursive: true });
   process.env.DATABASE_URL = `file:${path.join(dataDir, 'tasklist.db').replace(/\\/g, '/')}`;
-  process.env.FRONTEND_ORIGIN = 'app://tasklist';
+  process.env.FRONTEND_ORIGIN = electronAppConfig.productionFrontendOrigin;
   process.env.ALLOW_FILE_ORIGIN = 'true';
-  process.env.PORT = '5000';
 
   const backendRoot = path.join(app.getAppPath(), 'backend/dist');
   const [{ createServer }, { initializeDatabase }, { ensureSeedData }] = await Promise.all([
@@ -28,20 +32,34 @@ async function startDesktopBackend() {
 
   await initializeDatabase();
   await ensureSeedData();
-  desktopServer = createServer().listen(5000, '127.0.0.1');
+
+  return new Promise<number>((resolve, reject) => {
+    const server = createServer();
+    server.once('error', reject);
+    desktopServer = server.listen(0, electronAppConfig.backendHost, () => {
+      const address = server.address();
+      if (address && typeof address === 'object') {
+        desktopPort = address.port;
+        resolve(address.port);
+        return;
+      }
+
+      reject(new Error('TaskList backend started without a TCP port.'));
+    });
+  });
 }
 
 async function createWindow() {
-  await startDesktopBackend();
+  const apiPort = await startDesktopBackend();
 
   const window = new BrowserWindow({
-    width: 1120,
-    height: 720,
-    minWidth: 760,
-    minHeight: 540,
+    width: electronAppConfig.defaultWindowWidth,
+    height: electronAppConfig.defaultWindowHeight,
+    minWidth: electronAppConfig.minWindowWidth,
+    minHeight: electronAppConfig.minWindowHeight,
     resizable: true,
-    title: 'TaskList',
-    backgroundColor: '#f4f4f5',
+    title: electronAppConfig.appName,
+    backgroundColor: electronAppConfig.backgroundColor,
     icon: app.isPackaged
       ? path.join(__dirname, '../frontend/dist/favicon.ico')
       : path.join(__dirname, '../build/icon.ico'),
@@ -63,7 +81,7 @@ async function createWindow() {
   });
 
   window.webContents.on('will-navigate', (event, url) => {
-    const allowedUrl = app.isPackaged ? url.startsWith('file://') : url.startsWith(devUrl);
+    const allowedUrl = app.isPackaged ? url.startsWith('file://') : url.startsWith(electronAppConfig.devServerUrl);
     if (!allowedUrl) {
       event.preventDefault();
       if (isSafeExternalUrl(url)) {
@@ -73,9 +91,11 @@ async function createWindow() {
   });
 
   if (app.isPackaged) {
-    window.loadFile(path.join(__dirname, '../frontend/dist/index.html'));
+    window.loadFile(path.join(__dirname, '../frontend/dist/index.html'), {
+      query: apiPort ? { [electronAppConfig.backendPortQueryKey]: String(apiPort) } : undefined
+    });
   } else {
-    window.loadURL(devUrl);
+    window.loadURL(electronAppConfig.devServerUrl);
   }
 }
 
@@ -100,6 +120,7 @@ app.on('window-all-closed', () => {
 app.on('before-quit', () => {
   desktopServer?.close();
   desktopServer = null;
+  desktopPort = null;
 });
 
 function isSafeExternalUrl(value: string) {

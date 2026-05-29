@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Plus, X } from 'lucide-react';
+import { taskPriorityNames, taskStatusNames } from '../../shared/applicationConstants';
 import { getPriorityByName, getStatusByName, useWorkspaceStore } from '../hooks/useWorkspaceStore';
 
 export function TaskForm({ listId, open, onClose }: { listId: string; open: boolean; onClose: () => void }) {
@@ -11,8 +12,8 @@ export function TaskForm({ listId, open, onClose }: { listId: string; open: bool
 
   useEffect(() => {
     if (open) {
-      setStatusId(getStatusByName(statuses, 'To Do')?.id ?? statuses[0]?.id ?? '');
-      setPriorityId(getPriorityByName(priorities, 'Medium')?.id ?? priorities[0]?.id ?? '');
+      setStatusId(getStatusByName(statuses, taskStatusNames.todo)?.id ?? statuses[0]?.id ?? '');
+      setPriorityId(getPriorityByName(priorities, taskPriorityNames.medium)?.id ?? priorities[0]?.id ?? '');
     }
   }, [open, priorities, statuses]);
 

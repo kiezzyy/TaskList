@@ -1,5 +1,7 @@
-export type TaskStatusName = 'To Do' | 'Progress' | 'Reviewing' | 'Complete';
-export type TaskPriorityName = 'Low' | 'Medium' | 'High' | 'Critical';
+import { taskPriorityNames, taskStatusNames } from '../../shared/applicationConstants';
+
+export type TaskStatusName = (typeof taskStatusNames)[keyof typeof taskStatusNames];
+export type TaskPriorityName = (typeof taskPriorityNames)[keyof typeof taskPriorityNames];
 
 export interface TaskStatus {
   id: string;

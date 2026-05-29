@@ -1,15 +1,16 @@
 import { LayoutGrid, PanelTop, Plus, Search, SlidersHorizontal } from 'lucide-react';
 import { DragEvent, useMemo, useState } from 'react';
+import { taskStatusNames } from '../../shared/applicationConstants';
 import { getVisibleTasks, useWorkspaceStore } from '../hooks/useWorkspaceStore';
 import { Task, TaskStatus } from '../services/types';
 import { TaskCard } from './TaskCard';
 import { TaskForm } from './TaskForm';
 
 const columnStyles: Record<string, { dot: string; bg: string }> = {
-  'To Do': { dot: 'bg-violet-500', bg: 'bg-violet-50/60' },
-  Progress: { dot: 'bg-amber-400', bg: 'bg-amber-50/70' },
-  Reviewing: { dot: 'bg-cyan-500', bg: 'bg-cyan-50/70' },
-  Complete: { dot: 'bg-emerald-500', bg: 'bg-emerald-50/70' }
+  [taskStatusNames.todo]: { dot: 'bg-violet-500', bg: 'bg-violet-50/60' },
+  [taskStatusNames.inProgress]: { dot: 'bg-amber-400', bg: 'bg-amber-50/70' },
+  [taskStatusNames.reviewing]: { dot: 'bg-cyan-500', bg: 'bg-cyan-50/70' },
+  [taskStatusNames.complete]: { dot: 'bg-emerald-500', bg: 'bg-emerald-50/70' }
 };
 
 export function TaskBoard() {

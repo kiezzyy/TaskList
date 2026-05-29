@@ -1,7 +1,8 @@
 import { apiBase } from '../../shared/api';
+import { apiRoutes } from '../../shared/apiRoutes';
 
 export async function downloadWorkspaceExport() {
-  const response = await fetch(`${apiBase}/workspace/export`);
+  const response = await fetch(`${apiBase}${apiRoutes.exportWorkspace}`);
   if (!response.ok) {
     throw new Error('Workspace export failed.');
   }

@@ -1,14 +1,16 @@
 import { z } from 'zod';
 import { config } from '../../config/appConfig.js';
+import { timerSettings } from '../../config/appConstants.js';
+import { textLimits, workspaceBackupLimits } from '../../config/validationLimits.js';
 
 const dateString = z.string().datetime();
 const nullableDate = dateString.nullable();
 const safeText = (max: number) => z.string().trim().max(max).transform((value) => value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, ''));
-const idString = z.string().trim().min(1).max(128);
+const idString = z.string().trim().min(1).max(textLimits.id);
 
 export const workspaceBackupSchema = z.object({
   metadata: z.object({
-    appVersion: safeText(40),
+    appVersion: safeText(textLimits.appVersion),
     schemaVersion: z.number().int(),
     exportedAt: dateString,
     totalTaskCount: z.number().int().nonnegative(),
@@ -16,34 +18,34 @@ export const workspaceBackupSchema = z.object({
     totalSubtaskCount: z.number().int().nonnegative(),
     totalRecordedWorkDurationSeconds: z.number().int().nonnegative()
   }),
-  statuses: z.array(z.object({ id: idString, name: safeText(80), sortOrder: z.number().int() })).max(50),
-  priorities: z.array(z.object({ id: idString, name: safeText(80), sortOrder: z.number().int() })).max(50),
-  taskLists: z.array(z.object({ id: idString, name: safeText(120), createdAt: dateString, updatedAt: dateString })).max(500),
+  statuses: z.array(z.object({ id: idString, name: safeText(textLimits.statusName), sortOrder: z.number().int() })).max(workspaceBackupLimits.statusCount),
+  priorities: z.array(z.object({ id: idString, name: safeText(textLimits.priorityName), sortOrder: z.number().int() })).max(workspaceBackupLimits.priorityCount),
+  taskLists: z.array(z.object({ id: idString, name: safeText(textLimits.taskListName), createdAt: dateString, updatedAt: dateString })).max(workspaceBackupLimits.taskListCount),
   tasks: z.array(
     z.object({
       id: idString,
       listId: idString,
       statusId: idString,
       priorityId: idString,
-      name: safeText(160),
-      description: safeText(4000).nullable(),
+      name: safeText(textLimits.taskName),
+      description: safeText(textLimits.taskDescription).nullable(),
       deletedAt: nullableDate,
       createdAt: dateString,
       updatedAt: dateString
     })
-  ).max(10000),
+  ).max(workspaceBackupLimits.taskCount),
   subtasks: z.array(
     z.object({
       id: idString,
       taskId: idString,
       statusId: idString,
-      name: safeText(160),
-      description: safeText(4000).nullable(),
+      name: safeText(textLimits.taskName),
+      description: safeText(textLimits.taskDescription).nullable(),
       deletedAt: nullableDate,
       createdAt: dateString,
       updatedAt: dateString
     })
-  ).max(50000),
+  ).max(workspaceBackupLimits.subtaskCount),
   sessions: z.array(
     z.object({
       id: idString,
@@ -53,28 +55,28 @@ export const workspaceBackupSchema = z.object({
       endedAt: nullableDate,
       durationSeconds: z.number().int().nonnegative()
     })
-  ).max(100000),
+  ).max(workspaceBackupLimits.sessionCount),
   history: z.array(
     z.object({
       id: idString,
-      type: safeText(80),
-      entity: safeText(80),
+      type: safeText(textLimits.activityType),
+      entity: safeText(textLimits.activityEntity),
       entityId: idString.nullable(),
-      message: safeText(500),
-      payload: safeText(10000).nullable(),
+      message: safeText(textLimits.activityMessage),
+      payload: safeText(textLimits.serializedPayload).nullable(),
       createdAt: dateString
     })
-  ).max(10000),
+  ).max(workspaceBackupLimits.activityHistoryCount),
   recycleBin: z.array(
     z.object({
       id: idString,
-      entity: safeText(80),
+      entity: safeText(textLimits.activityEntity),
       entityId: idString,
-      label: safeText(200),
-      payload: safeText(10000),
+      label: safeText(textLimits.recycleBinLabel),
+      payload: safeText(textLimits.serializedPayload),
       deletedAt: dateString
     })
-  ).max(10000)
+  ).max(workspaceBackupLimits.recycleBinCount)
 });
 
 export type WorkspaceBackup = z.infer<typeof workspaceBackupSchema>;
@@ -122,7 +124,7 @@ function relationshipErrors(backup: WorkspaceBackup) {
     if (session.subtaskId && !subtaskIds.has(session.subtaskId)) errors.push(`Session ${session.id} references a missing subtask.`);
     if (!session.taskId && !session.subtaskId) errors.push(`Session ${session.id} has no task or subtask target.`);
     if (session.taskId && session.subtaskId) errors.push(`Session ${session.id} has more than one timer target.`);
-    if (new Date(session.startedAt).getTime() > Date.now() + 60_000) errors.push(`Session ${session.id} starts in the future.`);
+    if (new Date(session.startedAt).getTime() > Date.now() + timerSettings.futureStartToleranceMs) errors.push(`Session ${session.id} starts in the future.`);
     if (session.endedAt && new Date(session.endedAt).getTime() < new Date(session.startedAt).getTime()) errors.push(`Session ${session.id} ends before it starts.`);
   }
 

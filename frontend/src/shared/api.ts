@@ -1,6 +1,15 @@
-export const apiBase = window.location.protocol === 'file:'
-  ? 'http://localhost:5000/api'
-  : 'http://localhost:4000/api';
+import { localApiDefaults } from './applicationConstants';
+
+function getApiBase() {
+  if (window.location.protocol === 'file:') {
+    const apiPort = new URLSearchParams(window.location.search).get(localApiDefaults.packagedPortQueryKey) ?? localApiDefaults.packagedFallbackPort;
+    return `http://${localApiDefaults.packagedHost}:${apiPort}/api`;
+  }
+
+  return localApiDefaults.developmentBaseUrl;
+}
+
+export const apiBase = getApiBase();
 
 export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${apiBase}${path}`, {

@@ -1,12 +1,14 @@
 import { apiRequest } from '../../shared/api';
+import { apiRoutes } from '../../shared/apiRoutes';
+import { applicationInfo, importSettings, maxBackupFileBytes } from '../../shared/applicationConstants';
 import { ImportAnalysis } from '../../task/services/types';
 
 export async function parseWorkspaceFile(file: File) {
-  if (file.type && file.type !== 'application/json') {
-    throw new Error('Choose a JSON file exported from TaskList.');
+  if (file.type && file.type !== importSettings.jsonMimeType) {
+    throw new Error(`Choose a JSON file exported from ${applicationInfo.name}.`);
   }
-  if (file.size > 20 * 1024 * 1024) {
-    throw new Error('Workspace backups must be 20 MB or smaller.');
+  if (file.size > maxBackupFileBytes) {
+    throw new Error(`Workspace backups must be ${importSettings.maxBackupFileMegabytes} MB or smaller.`);
   }
   try {
     return JSON.parse(await file.text()) as unknown;
@@ -16,7 +18,7 @@ export async function parseWorkspaceFile(file: File) {
 }
 
 export function analyzeWorkspace(payload: unknown) {
-  return apiRequest<ImportAnalysis>('/workspace/import/analyze', {
+  return apiRequest<ImportAnalysis>(apiRoutes.analyzeWorkspaceImport, {
     method: 'POST',
     body: JSON.stringify(payload)
   });
@@ -24,7 +26,7 @@ export function analyzeWorkspace(payload: unknown) {
 
 export function importWorkspace(payload: unknown, mode: 'merge' | 'replace') {
   return apiRequest<{ mode: string; taskLists: number; tasks: number; subtasks: number; sessions: number }>(
-    `/workspace/import?mode=${mode}`,
+    apiRoutes.importWorkspace(mode),
     {
       method: 'POST',
       body: JSON.stringify(payload)

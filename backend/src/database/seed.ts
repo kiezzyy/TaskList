@@ -1,18 +1,19 @@
+import { taskPriorityNames, taskStatusNames, workspaceDefaults } from '../config/appConstants.js';
 import { config } from '../config/appConfig.js';
 import { prisma } from './prisma.js';
 
 const statuses = [
-  { name: 'To Do', sortOrder: 1, legacyNames: ['Not Started'] },
-  { name: 'Progress', sortOrder: 2, legacyNames: ['Ongoing'] },
-  { name: 'Reviewing', sortOrder: 3, legacyNames: [] },
-  { name: 'Complete', sortOrder: 4, legacyNames: ['Completed'] }
+  { name: taskStatusNames.todo, sortOrder: 1, legacyNames: ['Not Started'] },
+  { name: taskStatusNames.inProgress, sortOrder: 2, legacyNames: ['Ongoing'] },
+  { name: taskStatusNames.reviewing, sortOrder: 3, legacyNames: [] },
+  { name: taskStatusNames.complete, sortOrder: 4, legacyNames: ['Completed'] }
 ] as const;
 
 const priorities = [
-  { name: 'Low', sortOrder: 1 },
-  { name: 'Medium', sortOrder: 2 },
-  { name: 'High', sortOrder: 3 },
-  { name: 'Critical', sortOrder: 4 }
+  { name: taskPriorityNames.low, sortOrder: 1 },
+  { name: taskPriorityNames.medium, sortOrder: 2 },
+  { name: taskPriorityNames.high, sortOrder: 3 },
+  { name: taskPriorityNames.critical, sortOrder: 4 }
 ] as const;
 
 export async function ensureSeedData() {
@@ -37,7 +38,7 @@ export async function ensureSeedData() {
 
   const listCount = await prisma.taskList.count();
   if (listCount === 0) {
-    await prisma.taskList.create({ data: { name: 'Personal' } });
+    await prisma.taskList.create({ data: { name: workspaceDefaults.initialListName } });
   }
 }
 

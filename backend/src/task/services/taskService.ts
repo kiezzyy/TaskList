@@ -1,4 +1,5 @@
 import type { Prisma, TaskSession } from '@prisma/client';
+import { progressSettings, taskPriorityNames, taskStatusNames, workspaceDefaults } from '../../config/appConstants.js';
 import { prisma } from '../../database/prisma.js';
 import { recordActivity } from './activityService.js';
 import { durationSeconds } from './timerMath.js';
@@ -25,11 +26,11 @@ function withComputedTask(task: TaskWithRelations) {
     totalDurationSeconds: totalDuration(subtask.sessions),
     activeSession: subtask.sessions.find((session) => !session.endedAt) ?? null
   }));
-  const completed = subtasks.filter((subtask) => subtask.status.name === 'Complete').length;
+  const completed = subtasks.filter((subtask) => subtask.status.name === taskStatusNames.complete).length;
   return {
     ...task,
     subtasks,
-    progress: subtasks.length ? Math.round((completed / subtasks.length) * 100) : task.status.name === 'Complete' ? 100 : 0,
+    progress: subtasks.length ? Math.round((completed / subtasks.length) * progressSettings.completePercent) : task.status.name === taskStatusNames.complete ? progressSettings.completePercent : 0,
     totalDurationSeconds: totalDuration(task.sessions),
     activeSession: task.sessions.find((session) => !session.endedAt) ?? null
   };
@@ -44,8 +45,8 @@ export async function getWorkspaceState() {
       include: { tasks: { where: { deletedAt: null }, include: taskInclude, orderBy: { updatedAt: 'desc' } } },
       orderBy: { updatedAt: 'desc' }
     }),
-    prisma.activityEvent.findMany({ orderBy: { createdAt: 'desc' }, take: 100 }),
-    prisma.recycleBinItem.findMany({ orderBy: { deletedAt: 'desc' }, take: 100 })
+    prisma.activityEvent.findMany({ orderBy: { createdAt: 'desc' }, take: workspaceDefaults.activityHistoryLimit }),
+    prisma.recycleBinItem.findMany({ orderBy: { deletedAt: 'desc' }, take: workspaceDefaults.recycleBinLimit })
   ]);
 
   return {
@@ -83,8 +84,8 @@ export async function deleteList(id: string) {
 
 export async function createTask(input: { listId: string; name: string; description?: string | null; statusId?: string; priorityId?: string }) {
   const [status, priority] = await Promise.all([
-    input.statusId ? prisma.taskStatus.findUnique({ where: { id: input.statusId } }) : prisma.taskStatus.findUnique({ where: { name: 'To Do' } }),
-    input.priorityId ? prisma.taskPriority.findUnique({ where: { id: input.priorityId } }) : prisma.taskPriority.findUnique({ where: { name: 'Medium' } })
+    input.statusId ? prisma.taskStatus.findUnique({ where: { id: input.statusId } }) : prisma.taskStatus.findUnique({ where: { name: taskStatusNames.todo } }),
+    input.priorityId ? prisma.taskPriority.findUnique({ where: { id: input.priorityId } }) : prisma.taskPriority.findUnique({ where: { name: taskPriorityNames.medium } })
   ]);
   if (!status || !priority) {
     throw notFound('Task status or priority was not found');
@@ -100,7 +101,7 @@ export async function createTask(input: { listId: string; name: string; descript
 export async function updateTask(id: string, input: Prisma.TaskUpdateInput) {
   const task = await prisma.task.update({ where: { id }, data: input, include: taskInclude });
   await recordActivity('updated', 'task', id, `Updated task "${task.name}"`, task);
-  if (task.status.name === 'Complete') {
+  if (task.status.name === taskStatusNames.complete) {
     await stopOpenTaskSessions(id, 'Timer stopped automatically because task was completed');
     const completedTask = await prisma.task.findUnique({ where: { id }, include: taskInclude });
     if (!completedTask) {
@@ -141,7 +142,7 @@ export async function restoreTask(id: string) {
 export async function createSubtask(input: { taskId: string; name: string; description?: string | null; statusId?: string }) {
   const status = input.statusId
     ? await prisma.taskStatus.findUnique({ where: { id: input.statusId } })
-    : await prisma.taskStatus.findUnique({ where: { name: 'To Do' } });
+    : await prisma.taskStatus.findUnique({ where: { name: taskStatusNames.todo } });
   if (!status) {
     throw notFound('Subtask status was not found');
   }
@@ -210,7 +211,7 @@ export async function stopTimer(target: { taskId?: string; subtaskId?: string })
 
 export async function reconcileCompletedTaskTimers() {
   const openCompletedTaskSessions = await prisma.taskSession.findMany({
-    where: { endedAt: null, task: { status: { name: 'Complete' } } },
+    where: { endedAt: null, task: { status: { name: taskStatusNames.complete } } },
     select: { taskId: true }
   });
   const taskIds = [...new Set(openCompletedTaskSessions.map((session) => session.taskId).filter((taskId): taskId is string => Boolean(taskId)))];
@@ -251,7 +252,7 @@ async function ensureTaskTimerCanStart(taskId: string) {
   if (!task) {
     throw notFound('Task was not found');
   }
-  if (task.status.name === 'Complete') {
+  if (task.status.name === taskStatusNames.complete) {
     const error = new Error('Completed tasks cannot start timers. Move the task out of Complete first.');
     Object.assign(error, { statusCode: 409 });
     throw error;

@@ -1,15 +1,20 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { workspaceRoutePaths } from '../config/httpRoutes.js';
+import { requestLimits } from '../config/validationLimits.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { createWorkspaceExport } from './export/exportService.js';
 import { analyzeWorkspaceImport, importWorkspace } from './import/importService.js';
 
 export const workspaceRouter = Router();
-const workspaceOperationLimit = rateLimit({ windowMs: 60_000, maxRequests: 20 });
+const workspaceOperationLimit = rateLimit({
+  windowMs: requestLimits.workspaceOperationWindowMs,
+  maxRequests: requestLimits.workspaceOperationMaxRequests
+});
 
 workspaceRouter.get(
-  '/export',
+  workspaceRoutePaths.export,
   workspaceOperationLimit,
   asyncHandler(async (_request, response) => {
     const backup = await createWorkspaceExport();
@@ -20,7 +25,7 @@ workspaceRouter.get(
 );
 
 workspaceRouter.post(
-  '/import/analyze',
+  workspaceRoutePaths.importAnalyze,
   workspaceOperationLimit,
   asyncHandler(async (request, response) => {
     response.json(await analyzeWorkspaceImport(request.body));
@@ -28,7 +33,7 @@ workspaceRouter.post(
 );
 
 workspaceRouter.post(
-  '/import',
+  workspaceRoutePaths.import,
   workspaceOperationLimit,
   asyncHandler(async (request, response) => {
     const mode = z.enum(['merge', 'replace']).parse(request.query.mode ?? 'merge');
