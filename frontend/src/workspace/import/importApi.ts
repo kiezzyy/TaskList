@@ -4,9 +4,15 @@ import { applicationInfo, importSettings, maxBackupFileBytes } from '../../share
 import { ImportAnalysis } from '../../task/services/types';
 
 export async function parseWorkspaceFile(file: File) {
-  if (file.type && file.type !== importSettings.jsonMimeType) {
+  // Accept common JSON MIME types or check file extension as fallback
+  const jsonMimeTypes = ['application/json', 'text/json', 'text/plain'];
+  const hasJsonExtension = file.name.endsWith('.json');
+  const hasValidMimeType = !file.type || jsonMimeTypes.includes(file.type);
+  
+  if (!hasJsonExtension && !hasValidMimeType) {
     throw new Error(`Choose a JSON file exported from ${applicationInfo.name}.`);
   }
+  
   if (file.size > maxBackupFileBytes) {
     throw new Error(`Workspace backups must be ${importSettings.maxBackupFileMegabytes} MB or smaller.`);
   }
