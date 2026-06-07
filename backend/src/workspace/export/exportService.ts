@@ -15,6 +15,13 @@ export async function createWorkspaceExport() {
     prisma.recycleBinItem.findMany({ orderBy: { deletedAt: 'desc' } })
   ]);
 
+  if (taskLists.length === 0) {
+    const error = new Error('Create at least one tab before exporting the workspace.');
+    Object.assign(error, { statusCode: 409 });
+    throw error;
+  }
+
+  const exportedSessions = sessions.map((session) => serializeSession(session, exportedAt));
   const backup = {
     metadata: {
       appVersion: config.appVersion,
@@ -23,14 +30,14 @@ export async function createWorkspaceExport() {
       totalTaskCount: tasks.length,
       totalTaskListCount: taskLists.length,
       totalSubtaskCount: subtasks.length,
-      totalRecordedWorkDurationSeconds: sessions.reduce((total, session) => total + session.durationSeconds, 0)
+      totalRecordedWorkDurationSeconds: exportedSessions.reduce((total, session) => total + Number(session.durationSeconds), 0)
     },
     statuses: statuses.map(serialize),
     priorities: priorities.map(serialize),
     taskLists: taskLists.map(serialize),
     tasks: tasks.map(serialize),
     subtasks: subtasks.map(serialize),
-    sessions: sessions.map((session) => serializeSession(session, exportedAt)),
+    sessions: exportedSessions,
     history: history.map(serialize),
     recycleBin: recycleBin.map(serialize)
   };

@@ -6,12 +6,12 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "prisma:generate": "prisma generate",
     "db:migrate": "tsx src/database/initSchema.ts",
     "db:deploy": "tsx src/database/initSchema.ts",
     "lint": "eslint src",
-    "test": "vitest run"
+    "test": "vitest run src"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

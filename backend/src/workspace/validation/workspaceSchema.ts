@@ -17,10 +17,10 @@ export const workspaceBackupSchema = z.object({
     totalTaskListCount: z.number().int().nonnegative(),
     totalSubtaskCount: z.number().int().nonnegative(),
     totalRecordedWorkDurationSeconds: z.number().int().nonnegative()
-  }),
-  statuses: z.array(z.object({ id: idString, name: safeText(textLimits.statusName), sortOrder: z.number().int() })).max(workspaceBackupLimits.statusCount),
-  priorities: z.array(z.object({ id: idString, name: safeText(textLimits.priorityName), sortOrder: z.number().int() })).max(workspaceBackupLimits.priorityCount),
-  taskLists: z.array(z.object({ id: idString, name: safeText(textLimits.taskListName), createdAt: dateString, updatedAt: dateString })).max(workspaceBackupLimits.taskListCount),
+  }).strict(),
+  statuses: z.array(z.object({ id: idString, name: safeText(textLimits.statusName), sortOrder: z.number().int() }).strict()).max(workspaceBackupLimits.statusCount),
+  priorities: z.array(z.object({ id: idString, name: safeText(textLimits.priorityName), sortOrder: z.number().int() }).strict()).max(workspaceBackupLimits.priorityCount),
+  taskLists: z.array(z.object({ id: idString, name: safeText(textLimits.taskListName), createdAt: dateString, updatedAt: dateString }).strict()).max(workspaceBackupLimits.taskListCount),
   tasks: z.array(
     z.object({
       id: idString,
@@ -32,7 +32,7 @@ export const workspaceBackupSchema = z.object({
       deletedAt: nullableDate,
       createdAt: dateString,
       updatedAt: dateString
-    })
+    }).strict()
   ).max(workspaceBackupLimits.taskCount),
   subtasks: z.array(
     z.object({
@@ -44,7 +44,7 @@ export const workspaceBackupSchema = z.object({
       deletedAt: nullableDate,
       createdAt: dateString,
       updatedAt: dateString
-    })
+    }).strict()
   ).max(workspaceBackupLimits.subtaskCount),
   sessions: z.array(
     z.object({
@@ -54,7 +54,7 @@ export const workspaceBackupSchema = z.object({
       startedAt: dateString,
       endedAt: nullableDate,
       durationSeconds: z.number().int().nonnegative()
-    })
+    }).strict()
   ).max(workspaceBackupLimits.sessionCount),
   history: z.array(
     z.object({
@@ -65,7 +65,7 @@ export const workspaceBackupSchema = z.object({
       message: safeText(textLimits.activityMessage),
       payload: safeText(textLimits.serializedPayload).nullable(),
       createdAt: dateString
-    })
+    }).strict()
   ).max(workspaceBackupLimits.activityHistoryCount),
   recycleBin: z.array(
     z.object({
@@ -75,16 +75,16 @@ export const workspaceBackupSchema = z.object({
       label: safeText(textLimits.recycleBinLabel),
       payload: safeText(textLimits.serializedPayload),
       deletedAt: dateString
-    })
+    }).strict()
   ).max(workspaceBackupLimits.recycleBinCount)
-});
+}).strict();
 
 export type WorkspaceBackup = z.infer<typeof workspaceBackupSchema>;
 
 export function validateWorkspaceBackup(payload: unknown) {
   const parsed = workspaceBackupSchema.safeParse(payload);
   if (!parsed.success) {
-    return { valid: false as const, errors: parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`) };
+    return { valid: false as const, errors: parsed.error.issues.map(formatSchemaIssue) };
   }
 
   const errors = relationshipErrors(parsed.data);
@@ -103,10 +103,32 @@ function relationshipErrors(backup: WorkspaceBackup) {
   const statusIds = new Set(backup.statuses.map((item) => item.id));
   const priorityIds = new Set(backup.priorities.map((item) => item.id));
 
-  addDuplicates(errors, 'task list', backup.taskLists.map((item) => item.id));
-  addDuplicates(errors, 'task', backup.tasks.map((item) => item.id));
-  addDuplicates(errors, 'subtask', backup.subtasks.map((item) => item.id));
-  addDuplicates(errors, 'session', backup.sessions.map((item) => item.id));
+  addDuplicates(errors, 'task list ID', backup.taskLists.map((item) => item.id));
+  addDuplicates(errors, 'task ID', backup.tasks.map((item) => item.id));
+  addDuplicates(errors, 'subtask ID', backup.subtasks.map((item) => item.id));
+  addDuplicates(errors, 'session ID', backup.sessions.map((item) => item.id));
+  addDuplicates(errors, 'status ID', backup.statuses.map((item) => item.id));
+  addDuplicates(errors, 'priority ID', backup.priorities.map((item) => item.id));
+  addDuplicates(errors, 'history event ID', backup.history.map((item) => item.id));
+  addDuplicates(errors, 'recycle bin item ID', backup.recycleBin.map((item) => item.id));
+  addDuplicates(errors, 'status name', backup.statuses.map((item) => item.name.toLowerCase()));
+  addDuplicates(errors, 'priority name', backup.priorities.map((item) => item.name.toLowerCase()));
+
+  if (backup.metadata.totalTaskCount !== backup.tasks.length) {
+    errors.push(`Backup metadata says it contains ${backup.metadata.totalTaskCount} tasks, but ${backup.tasks.length} task records were found.`);
+  }
+  if (backup.metadata.totalTaskListCount !== backup.taskLists.length) {
+    errors.push(`Backup metadata says it contains ${backup.metadata.totalTaskListCount} task lists, but ${backup.taskLists.length} task list records were found.`);
+  }
+  if (backup.metadata.totalSubtaskCount !== backup.subtasks.length) {
+    errors.push(`Backup metadata says it contains ${backup.metadata.totalSubtaskCount} subtasks, but ${backup.subtasks.length} subtask records were found.`);
+  }
+  const recordedDuration = backup.sessions.reduce((total, session) => total + session.durationSeconds, 0);
+  if (backup.metadata.totalRecordedWorkDurationSeconds !== recordedDuration) {
+    errors.push(
+      `Backup metadata says it contains ${backup.metadata.totalRecordedWorkDurationSeconds} seconds of recorded work, but session records total ${recordedDuration} seconds.`
+    );
+  }
 
   for (const task of backup.tasks) {
     if (!listIds.has(task.listId)) errors.push(`Task "${task.name}" references a missing task list.`);
@@ -136,7 +158,7 @@ function relationshipErrors(backup: WorkspaceBackup) {
 function addDuplicates(errors: string[], label: string, ids: string[]) {
   const seen = new Set<string>();
   for (const id of ids) {
-    if (seen.has(id)) errors.push(`Duplicate ${label} ID detected: ${id}.`);
+    if (seen.has(id)) errors.push(`Duplicate ${label} detected: ${id}.`);
     seen.add(id);
   }
 }
@@ -153,4 +175,21 @@ function addDuplicateActiveSessions(errors: string[], sessions: WorkspaceBackup[
     }
     activeTargets.add(target);
   }
+}
+
+function formatSchemaIssue(issue: z.ZodIssue) {
+  const path = issue.path.length ? issue.path.join('.') : 'backup';
+  if (issue.code === z.ZodIssueCode.invalid_type && issue.received === 'undefined') {
+    return `Missing required field: ${path}.`;
+  }
+  if (issue.code === z.ZodIssueCode.invalid_string && issue.validation === 'datetime') {
+    return `Malformed timestamp at ${path}. Use an ISO-8601 date/time value.`;
+  }
+  if (issue.code === z.ZodIssueCode.unrecognized_keys) {
+    return `Unsupported field at ${path}: ${issue.keys.join(', ')}.`;
+  }
+  if (issue.code === z.ZodIssueCode.too_big && issue.type === 'string') {
+    return `Field ${path} is too large to import. Export a smaller workspace or remove oversized recycle-bin/history entries.`;
+  }
+  return `${path}: ${issue.message}`;
 }

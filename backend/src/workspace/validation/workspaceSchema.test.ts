@@ -65,4 +65,42 @@ describe('workspace backup validation', () => {
     const result = validateWorkspaceBackup(invalid);
     expect(result.valid).toBe(false);
   });
+
+  it('returns clear errors for malformed timestamps', () => {
+    const invalid = structuredClone(backup);
+    invalid.metadata.exportedAt = 'not-a-date';
+    const result = validateWorkspaceBackup(invalid);
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        'Malformed timestamp at metadata.exportedAt. Use an ISO-8601 date/time value.'
+      ])
+    );
+  });
+
+  it('rejects unsupported schema versions', () => {
+    const invalid = structuredClone(backup);
+    invalid.metadata.schemaVersion = config.schemaVersion + 1;
+    const result = validateWorkspaceBackup(invalid);
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([`Backup schema version ${config.schemaVersion + 1} is not compatible with schema version ${config.schemaVersion}.`])
+    );
+  });
+
+  it('rejects duplicate IDs and duplicate lookup names', () => {
+    const invalid = structuredClone(backup);
+    invalid.statuses.push({ id: 'status-1', name: 'Not Started', sortOrder: 2 });
+    const result = validateWorkspaceBackup(invalid);
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(expect.arrayContaining(['Duplicate status ID detected: status-1.', 'Duplicate status name detected: not started.']));
+  });
+
+  it('rejects metadata count mismatches', () => {
+    const invalid = structuredClone(backup);
+    invalid.metadata.totalTaskCount = 2;
+    const result = validateWorkspaceBackup(invalid);
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(expect.arrayContaining(['Backup metadata says it contains 2 tasks, but 1 task records were found.']));
+  });
 });

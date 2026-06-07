@@ -1,21 +1,34 @@
 import { Check, Download, FolderOpen, Pencil, Plus, Trash2, Upload } from 'lucide-react';
 import { ChangeEvent, FormEvent, useRef, useState } from 'react';
 import { useWorkspaceStore } from '../../task/hooks/useWorkspaceStore';
+import { ImportAnalysis } from '../../task/services/types';
 import { downloadWorkspaceExport } from '../export/exportApi';
 import { analyzeWorkspace, importWorkspace, parseWorkspaceFile } from '../import/importApi';
+
+type PendingImport = {
+  payload: unknown;
+  analysis: ImportAnalysis;
+};
 
 export function WorkspaceToolbar() {
   const { lists, selectedListId, setSelectedListId, createList, renameList, deleteList, load } = useWorkspaceStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pendingImport, setPendingImport] = useState<PendingImport | null>(null);
   const [newTabName, setNewTabName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const canExport = lists.length > 0;
 
   async function exportWorkspace() {
+    if (!canExport) {
+      setMessage('Create at least one tab before exporting the workspace.');
+      return;
+    }
     setBusy(true);
     setMessage(null);
+    setPendingImport(null);
     try {
       await downloadWorkspaceExport();
       setMessage('Workspace export created.');
@@ -34,6 +47,7 @@ export function WorkspaceToolbar() {
     }
     setBusy(true);
     setMessage('Validating workspace backup...');
+    setPendingImport(null);
     try {
       const payload = await parseWorkspaceFile(file);
       const analysis = await analyzeWorkspace(payload);
@@ -41,17 +55,24 @@ export function WorkspaceToolbar() {
         setMessage(`${analysis.errors?.join(' ')} ${analysis.guidance ?? ''}`.trim());
         return;
       }
-      const choice = window.prompt('Type "replace" to restore only this backup, "merge" to add it to the current workspace, or "cancel".', 'merge');
-      if (choice === null || choice.toLowerCase() === 'cancel') {
-        setMessage('Import canceled.');
-        return;
-      }
-      const normalizedChoice = choice.toLowerCase();
-      if (normalizedChoice !== 'replace' && normalizedChoice !== 'merge') {
-        setMessage('Import canceled. Choose merge or replace when importing a workspace.');
-        return;
-      }
-      const summary = await importWorkspace(payload, normalizedChoice);
+      setPendingImport({ payload, analysis });
+      setMessage(importReadyMessage(analysis));
+    } catch (error) {
+      setMessage(getMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmImport(mode: 'merge' | 'replace') {
+    if (!pendingImport) {
+      return;
+    }
+    setBusy(true);
+    setMessage(mode === 'replace' ? 'Replacing workspace from backup...' : 'Merging workspace backup...');
+    try {
+      const summary = await importWorkspace(pendingImport.payload, mode);
+      setPendingImport(null);
       await load();
       setMessage(`Import complete: ${summary.taskLists} tabs and ${summary.tasks} tasks.`);
     } catch (error) {
@@ -59,6 +80,11 @@ export function WorkspaceToolbar() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function cancelImport() {
+    setPendingImport(null);
+    setMessage('Import canceled.');
   }
 
   async function addTab(event: FormEvent) {
@@ -87,10 +113,28 @@ export function WorkspaceToolbar() {
           <div>
             <h2 className="text-base font-semibold">Personal Workspace</h2>
             <p className="text-xs text-zinc-500">{message ?? 'SQLite persistence, JSON backups, and local-first task tracking.'}</p>
+            {pendingImport ? (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50" onClick={() => confirmImport('merge')} disabled={busy}>
+                  Merge
+                </button>
+                <button className="rounded-md bg-zinc-950 px-2.5 py-1 text-xs font-medium text-white disabled:opacity-60" onClick={() => confirmImport('replace')} disabled={busy}>
+                  Replace
+                </button>
+                <button className="rounded-md px-2.5 py-1 text-xs font-medium text-zinc-500 hover:bg-zinc-100" onClick={cancelImport} disabled={busy}>
+                  Cancel
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button className="inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm hover:bg-zinc-50" onClick={exportWorkspace} disabled={busy}>
+          <button
+            className="inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm hover:bg-zinc-50 disabled:opacity-50"
+            onClick={exportWorkspace}
+            disabled={busy || !canExport}
+            title={canExport ? 'Export workspace' : 'Create a tab before exporting'}
+          >
             <Download size={16} /> Export
           </button>
           <button className="inline-flex items-center gap-2 rounded-md bg-zinc-950 px-3 py-2 text-sm text-white disabled:opacity-60" onClick={() => inputRef.current?.click()} disabled={busy}>
@@ -156,4 +200,12 @@ export function WorkspaceToolbar() {
 
 function getMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Workspace operation failed.';
+}
+
+function importReadyMessage(analysis: ImportAnalysis) {
+  const counts = analysis.counts;
+  if (!counts) {
+    return 'Backup validated. Choose how to import it.';
+  }
+  return `Backup validated: ${counts.taskLists} tabs, ${counts.tasks} tasks, ${counts.subtasks} subtasks, and ${counts.sessions} timer sessions.`;
 }

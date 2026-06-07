@@ -9,7 +9,7 @@ export const textLimits = {
   activityType: 80,
   activityEntity: 80,
   activityMessage: 500,
-  serializedPayload: 10_000,
+  serializedPayload: 20 * 1024 * 1024,
   recycleBinLabel: 200
 } as const;
 
