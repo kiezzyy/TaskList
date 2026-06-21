@@ -1,20 +1,171 @@
 # TaskList
 
-TaskList is a place to keep your work organized without making it feel heavy. It gives you tabs, boards, history, backups, and recovery in one app. The frontend is built with React and Vite, and the backend uses Express, Prisma, and SQLite for local development.
+TaskList is a local-first, offline-ready desktop workspace designed to help you organize your tasks, track your time, and manage your focus without relying on third-party cloud services. 
 
-## What You Get
+If you like the clean tabs and Kanban boards of **Notion** but want something fast, privacy-first, and fully functional offline, TaskList was built for you.
 
-- Separate workspace tabs for different parts of your life or job
-- Create, edit, delete, and restore tasks
-- A task history and recycle bin when you need to recover something
-- Kanban-style columns with drag and drop
-- Compact mode for tighter layouts
-- Search and filtering so you can find things quickly
-- JSON import and export for backups and moving data around
-- Persistent storage through Prisma
-- Popups and modals for focused actions
+---
 
-## Project Layout
+## Why I Created This (Inspiration)
+
+I'm a big fan of Notion's clean layouts and organizational system, but I wanted a task manager that:
+1. **Runs 100% local:** No internet connection required, zero loading screens, and no mandatory cloud logins.
+2. **Has built-in time tracking:** A simple way to track task duration directly on the cards.
+3. **Respects privacy:** My data should remain on my computer, not on someone else's server.
+
+---
+
+## Frequently Asked Questions & Security
+
+### Where is my information stored?
+Your tasks, subtasks, timers, and history are stored **100% locally** in an SQLite database on your own computer. 
+- When running the app, it saves your data in your operating system's standard AppData directory (e.g., `C:\Users\<username>\AppData\Roaming\TaskList` on Windows).
+- Your data never leaves your machine. There are no tracking scripts, analytics, or cloud uploads.
+
+### Can other people hack it?
+Because TaskList runs entirely on your local machine and has **no backend cloud server**, it cannot be hacked remotely. There is no website or database endpoint for hackers to target. Your tasks are as secure as your computer itself. Keep your own operating system secure, and your tasks will remain safe.
+
+### Does it contain malware?
+**No.** The entire codebase is open-source and visible here on GitHub. It does not contain any telemetry, trackers, miners, or malicious code.
+
+### Why does Windows Defender SmartScreen block the app?
+When you first run the installer, Windows might pop up a warning saying:
+> *"Microsoft Defender SmartScreen prevented an unrecognized app from starting..."*
+
+This is **normal behavior for self-packaged/open-source applications**. 
+To make this warning go away permanently for everyone, developers have to purchase a digital code-signing certificate from a Microsoft-approved Certificate Authority (which costs hundreds of dollars a year). Because this is a free, self-built project, it isn't digitally signed.
+
+#### How to safely bypass this:
+1. When the blue SmartScreen window pops up, click **"More info"**.
+2. Click the **"Run anyway"** button that appears.
+3. The app will launch normally, and Windows will remember your choice.
+
+---
+
+## How to Download & Install
+
+You don't need any technical setup to use TaskList. Just grab the installer for your operating system:
+
+->> **[Download the Latest Release on GitHub](https://github.com/kiezzyy/TaskList/releases/latest)**
+
+* **Windows:** Download the `.exe` installer.
+* **macOS:** Download the `.dmg` file.
+* **Linux:** Download the `.AppImage` file.
+
+---
+
+## For Developers (Local Setup)
+
+If you want to run or build the application from source, follow these steps.
+
+### Prerequisites
+Make sure you have [Node.js](https://nodejs.org/) installed.
+
+### 1. Install Dependencies
+Clone the repository, open your terminal in the project root, and run:
+```powershell
+# Installs dependencies for root, frontend, and backend
+npm run install:all
+```
+*Note: If Windows PowerShell blocks the command due to script execution policies, run `npm.cmd run install:all` instead.*
+
+### 2. Set Up Database
+Generate the local Prisma database client:
+```powershell
+npm run prisma:generate --prefix backend
+```
+
+### 3. Run in Development Mode
+Start the local Express backend, Vite dev server, and Electron shell concurrently:
+```powershell
+npm run dev
+```
+
+### 4. Package/Build the Desktop App
+To package the app into a production-ready installer for your OS:
+```powershell
+# Generates a production installer in the /release directory
+npm run dist
+```
+
+## Build
+
+```bash
+npm run build
+```
+
+The build command compiles the backend, frontend, and Electron entry points.
+
+## Desktop Installers
+
+Download the latest ready-to-install desktop builds from:
+
+[TaskList GitHub Releases](https://github.com/kiezzyy/TaskList/releases/latest)
+
+End users do not need Node.js, npm, a terminal, or any development setup. Download the installer for your operating system, install it, and open TaskList.
+
+TaskList uses Electron Builder to create normal desktop installers:
+
+```bash
+npm run dist:win
+npm run dist:mac
+npm run dist:linux
+```
+
+Outputs are written to `release/`:
+
+- Windows: `.exe` NSIS installer
+- macOS: `.dmg`
+- Linux: `.AppImage`
+
+Installed builds start the local API automatically and store SQLite data in the operating system's app data directory. End users only need to download, install, and open TaskList.
+
+## Test
+
+```bash
+npm run test
+```
+
+Backend tests cover timer math and workspace import validation.
+
+## Workspace Features
+
+- Workspace tabs for Personal, School, Work, Projects, or any custom area
+- Kanban columns: To Do, Progress, Reviewing, Complete
+- Drag-and-drop task movement between columns
+- Task creation, editing, deletion, priority changes, and status changes
+- Subtasks with their own status and timer controls
+- Start, pause, resume, and stop timers
+- Multiple timer sessions with accumulated duration
+- Activity history and recycle-bin recovery metadata
+- JSON workspace export and import
+- SQL persistence across refreshes, browser restarts, Electron restarts, and machine restarts
+
+## Export And Import
+
+Use the workspace header buttons:
+
+- Export downloads a JSON backup.
+- Import validates the selected JSON file before restoring.
+- Import supports `merge` and `replace` modes.
+
+Backups include task lists, tasks, statuses, priorities, descriptions, subtasks, history, timestamps, timer sessions, recycle-bin metadata, app version, schema version, and total recorded duration.
+
+Invalid imports are rejected with validation messages for malformed JSON, incompatible schema versions, broken relationships, duplicate IDs, missing required fields, or corrupted structure.
+
+## Database
+
+The schema lives in `backend/prisma/schema.prisma`. Runtime initialization reads `backend/prisma/migrations/20260519061000_init_desktop/migration.sql` and creates the SQLite tables if needed.
+
+Set a custom database path with:
+
+```bash
+DATABASE_URL="file:./tasklist.db"
+```
+
+Local database files are ignored by Git.
+
+## Architecture
 
 ```text
 project-root/
@@ -26,6 +177,7 @@ project-root/
 │       ├── middleware/
 │       ├── task/
 │       └── workspace/
+├── electron/
 ├── frontend/
 │   └── src/
 │       ├── app/
@@ -33,141 +185,40 @@ project-root/
 │       ├── shared/
 │       ├── task/
 │       └── workspace/
-├── docker-compose.yml
 └── package.json
 ```
 
-## Requirements
+The backend owns validation, persistence, timer sessions, export/import, recovery metadata, and API security. The frontend owns workspace navigation, tabs, kanban interactions, task cards, timer controls, and import/export actions.
 
-- Node.js 20 or newer
-- npm
-- SQLite for local development
-- Docker and Docker Compose if you want to run the container setup
+## Automated Releases
 
-## Install
+GitHub Actions is configured in `.github/workflows/release.yml`.
 
-```powershell
-npm run install:all
-```
+The workflow runs when:
 
-## Environment Variables
+- a version tag such as `v1.0.0` is pushed
+- a GitHub Release is created or published
+- it is manually dispatched
 
-Backend settings live in `backend/.env`.
+The release pipeline installs dependencies, generates the Prisma client, runs backend tests, builds the frontend/backend/Electron app, packages installers on native runners, uploads workflow artifacts, and attaches binaries to GitHub Releases.
 
-```env
-DATABASE_URL="file:./tasklist.db"
-PORT=4000
-HOST=127.0.0.1
-FRONTEND_ORIGIN="http://localhost:5173"
-ALLOW_FILE_ORIGIN=false
-```
+Release outputs:
 
-- `FRONTEND_ORIGIN` can be a single origin or a comma-separated list.
-- If the frontend and backend are served from the same place, the client uses `/api` by default.
-- If the frontend is hosted somewhere else, set `VITE_API_BASE_URL` when you build it.
+- Windows: `TaskList-1.0.0-win-x64.exe`
+- macOS: `TaskList-1.0.0-mac-<arch>.dmg`
+- Linux: `TaskList-1.0.0-linux-<arch>.AppImage`
 
-## Local Development
+The filenames above are examples. The actual downloadable files are attached to the GitHub Release after the release workflow finishes.
 
-Start the backend and frontend together:
+## Security Notes
 
-```powershell
-npm run dev:web
-```
-
-The root `dev` script does the same thing.
-
-## Build
-
-Build the web app:
-
-```powershell
-npm run build:web
-```
-
-That command builds both the backend and frontend for browser deployment.
-
-## Database
-
-The Prisma schema lives in `backend/prisma/schema.prisma`.
-
-Initialize the local database with:
-
-```powershell
-npm run db:migrate
-```
-
-SQLite is the default development database. If you want a different database, update `DATABASE_URL` in the backend environment file.
-
-## Import and Export
-
-TaskList uses JSON workspace backups.
-
-- Export downloads the current workspace as a JSON file.
-- Import checks schema version, required fields, structure, and file size before it is accepted.
-- Import supports merge and replace workflows.
-
-## Docker
-
-The repository includes a `docker-compose.yml` setup with:
-
-- `backend` on port `4000`
-- `web` behind a domain proxy
-- `proxy` serving the public site on ports `80` and `443`
-
-The proxy sends `/api` requests to the backend and everything else to the frontend container, so the browser sees the app as one site.
-
-For local testing you can still open the site on your machine after mapping the proxy ports.
-
-## Deploying to a Domain
-
-Yes, TaskList can live at a real website address like `https://www.tasklist.com`.
-
-In that setup, people just open the domain in their browser. The shell commands are only for you when you deploy or update the server.
-
-The usual setup looks like this:
-
-1. Point your domain's DNS A record at the server's public IP.
-2. Copy [.env.example](.env.example) to `.env`.
-3. Set `TASKLIST_DOMAIN` to your public domain, for example `www.tasklist.com`.
-4. Set `TASKLIST_FRONTEND_ORIGIN` to the same public URL, for example `https://www.tasklist.com`.
-5. Set `TASKLIST_CADDY_EMAIL` to the email address used for TLS certificates.
-6. Start the stack on the server.
-
-If you use a reverse proxy, keep the browser-facing URL and `TASKLIST_FRONTEND_ORIGIN` in sync.
-
-## VPS Notes
-
-- Backend data persists in the Docker volume `tasklist-db`.
-- The backend container binds to `0.0.0.0` so it is reachable inside the Docker network.
-- Public traffic should go to the `web` container, not the backend directly.
-- Caddy automatically handles HTTPS for the configured domain.
-
-## Domain Setup Example
-
-If you want the app on `https://www.tasklist.com`, the moving parts usually look like this:
-
-- DNS points `www.tasklist.com` to your server IP
-- Caddy gets a certificate for `www.tasklist.com`
-- The browser opens `https://www.tasklist.com`
-- The proxy sends traffic to the frontend and backend containers internally
-
-That means nobody has to remember a port number or type a command line just to use the app.
-
-## Validation and Security
-
-- Inputs are trimmed and length-limited on the backend
-- JSON payloads are validated with Zod
-- Large payloads are capped
-- Import and export actions are rate-limited
-- Server errors are sanitized before they go back to the browser
-- CORS is restricted through `FRONTEND_ORIGIN`
-
-## Testing
-
-Run the backend test suite:
-
-```powershell
-npm run test --prefix backend
-```
-
-The backend tests cover timer math, import validation, and workspace round-trip behavior.
+- The app is designed for local machine usage.
+- Data is stored in SQLite, not a cloud database.
+- Imports are parsed as JSON and validated with Zod before restore.
+- Import/export operations are rate-limited.
+- Express uses Helmet, a restricted CORS origin, and binds to `127.0.0.1` by default.
+- Request bodies are size-limited.
+- User-entered text and imported text fields are trimmed, length-limited, and stripped of unsafe control characters.
+- Timer state is calculated from persisted session timestamps, with active timer operations serialized per task or subtask to prevent duplicate running sessions.
+- Electron runs with `nodeIntegration` disabled, `contextIsolation` enabled, renderer sandboxing enabled, no preload bridge, denied permission prompts, blocked unsafe navigation, and external opening limited to safe URL schemes.
+- Sensitive files, environment variables, local databases, logs, caches, and build artifacts are ignored by Git.

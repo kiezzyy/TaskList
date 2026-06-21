@@ -6,7 +6,7 @@ import { formatDateTime } from '../../task/utils/time';
 
 export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { history, lists } = useWorkspaceStore();
-  const groupedHistory = useMemo(() => groupHistoryByWorkspaceList(history, lists), [history, lists]);
+  const groupedHistory = useMemo(() => groupHistoryByList(history, lists), [history, lists]);
 
   if (!open) {
     return null;
@@ -45,7 +45,7 @@ function HistoryGroup({ group }: { group: { id: string; name: string; events: Ac
 
   return (
     <section className="rounded-lg border border-zinc-200 bg-white">
-      <button className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-zinc-50" onClick={() => setExpanded((isExpanded) => !isExpanded)}>
+      <button className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-zinc-50" onClick={() => setExpanded((value) => !value)}>
         <span className="min-w-0">
           <span className="block truncate text-sm font-semibold text-zinc-950">{group.name}</span>
           <span className="text-xs text-zinc-500">{group.events.length} activity events</span>
@@ -72,27 +72,27 @@ function HistoryGroup({ group }: { group: { id: string; name: string; events: Ac
   );
 }
 
-function groupHistoryByWorkspaceList(history: ActivityEvent[], lists: TaskList[]) {
+function groupHistoryByList(history: ActivityEvent[], lists: TaskList[]) {
   const groups = lists.map((list) => ({
     id: list.id,
     name: list.name,
-    events: history.filter((activityEvent) => eventBelongsToList(activityEvent, list.id))
+    events: history.filter((event) => belongsToList(event, list.id))
   }));
-  const workspaceEvents = history.filter((activityEvent) => !lists.some((list) => eventBelongsToList(activityEvent, list.id)));
+  const workspaceEvents = history.filter((event) => !lists.some((list) => belongsToList(event, list.id)));
   return workspaceEvents.length ? [...groups, { id: 'workspace', name: 'Workspace events', events: workspaceEvents }] : groups;
 }
 
-function eventBelongsToList(activityEvent: ActivityEvent, listId: string) {
-  const payload = parseActivityPayload(activityEvent);
-  return payload?.listId === listId || (activityEvent.entity === 'task_list' && activityEvent.entityId === listId);
+function belongsToList(event: ActivityEvent, listId: string) {
+  const payload = parsePayload(event);
+  return payload?.listId === listId || (event.entity === 'task_list' && event.entityId === listId);
 }
 
-function parseActivityPayload(activityEvent: { payload?: string | null }) {
-  if (!activityEvent.payload) {
+function parsePayload(item: { payload?: string | null }) {
+  if (!item.payload) {
     return null;
   }
   try {
-    return JSON.parse(activityEvent.payload) as { listId?: string };
+    return JSON.parse(item.payload) as { listId?: string };
   } catch {
     return null;
   }

@@ -7,7 +7,7 @@ export const applicationInfo = {
 export const networkDefaults = {
   backendPort: 5000,
   backendHost: '127.0.0.1',
-  frontendOrigins: ['http://localhost:5173', 'http://127.0.0.1:5173']
+  frontendOrigin: 'http://localhost:5173'
 } as const;
 
 export const taskStatusNames = {

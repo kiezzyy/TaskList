@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
 
 interface HttpError extends Error {
@@ -6,7 +6,7 @@ interface HttpError extends Error {
   details?: string[];
 }
 
-export function errorHandler(error: HttpError, _request: Request, response: Response) {
+export function errorHandler(error: HttpError, _request: Request, response: Response, _next: NextFunction) {
   if (error instanceof ZodError) {
     response.status(400).json({
       message: 'Request validation failed',
@@ -21,8 +21,8 @@ export function errorHandler(error: HttpError, _request: Request, response: Resp
   });
 }
 
-function sanitizeDetail(detail: string) {
-  return detail
+function sanitizeDetail(value: string) {
+  return value
     .replace(/[A-Za-z]:\\[^\s"'<>]+/g, '[local-path]')
     .replace(/\/(?:Users|home|var|tmp)\/[^\s"'<>]+/g, '[local-path]');
 }

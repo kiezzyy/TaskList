@@ -3,8 +3,7 @@ export const applicationInfo = {
 } as const;
 
 export const localApiDefaults = {
-  developmentApiBaseUrl: 'http://localhost:4000/api',
-  productionApiBaseUrl: '/api',
+  developmentBaseUrl: 'http://localhost:4000/api',
   packagedHost: '127.0.0.1',
   packagedFallbackPort: '5000',
   packagedPortQueryKey: 'apiPort'
