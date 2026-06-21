@@ -1,5 +1,5 @@
 import { LayoutGrid, PanelTop, Plus, Search, SlidersHorizontal } from 'lucide-react';
-import { DragEvent, useMemo, useState } from 'react';
+import { DragEvent, useEffect, useMemo, useState } from 'react';
 import { taskStatusNames } from '../../shared/applicationConstants';
 import { getVisibleTasks, useWorkspaceStore } from '../hooks/useWorkspaceStore';
 import { Task, TaskStatus } from '../services/types';
@@ -12,6 +12,8 @@ const columnStyles: Record<string, { dot: string; bg: string }> = {
   [taskStatusNames.reviewing]: { dot: 'bg-cyan-500', bg: 'bg-cyan-50/70' },
   [taskStatusNames.complete]: { dot: 'bg-emerald-500', bg: 'bg-emerald-50/70' }
 };
+
+const compactModeStorageKey = 'tasklist-compact-mode';
 
 export function TaskBoard() {
   const {
@@ -28,11 +30,15 @@ export function TaskBoard() {
     updateTask
   } = useWorkspaceStore();
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
-  const [compactMode, setCompactMode] = useState(false);
+  const [compactMode, setCompactMode] = useState(() => readStoredBoolean(compactModeStorageKey, false));
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const selectedList = lists.find((list) => list.id === selectedListId);
   const tasks = getVisibleTasks(lists, selectedListId, statusFilter, priorityFilter, searchQuery);
   const orderedStatuses = useMemo(() => [...statuses].sort((first, second) => first.sortOrder - second.sortOrder), [statuses]);
+
+  useEffect(() => {
+    window.localStorage.setItem(compactModeStorageKey, String(compactMode));
+  }, [compactMode]);
 
   if (!selectedList) {
     return (
@@ -128,6 +134,23 @@ export function TaskBoard() {
 
 function sortColumnTasks(tasks: Task[]) {
   return [...tasks].sort((first, second) => new Date(first.updatedAt).getTime() - new Date(second.updatedAt).getTime());
+}
+
+function readStoredBoolean(key: string, fallback: boolean) {
+  if (typeof window === 'undefined') {
+    return fallback;
+  }
+
+  const storedValue = window.localStorage.getItem(key);
+  if (storedValue === 'true') {
+    return true;
+  }
+
+  if (storedValue === 'false') {
+    return false;
+  }
+
+  return fallback;
 }
 
 function KanbanColumn({

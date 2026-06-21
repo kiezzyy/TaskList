@@ -25,38 +25,60 @@ interface WorkspaceStore extends WorkspaceState {
   stopTimer: (id: string) => Promise<void>;
 }
 
+const workspacePreferenceKeys = {
+  selectedListId: 'tasklist-selected-list-id',
+  searchQuery: 'tasklist-search-query',
+  statusFilter: 'tasklist-status-filter',
+  priorityFilter: 'tasklist-priority-filter'
+} as const;
+
 export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
   statuses: [],
   priorities: [],
   lists: [],
   history: [],
   recycleBin: [],
-  selectedListId: null,
-  statusFilter: 'all',
-  priorityFilter: 'all',
-  searchQuery: '',
+  selectedListId: readStoredValue(workspacePreferenceKeys.selectedListId),
+  statusFilter: readStoredValue(workspacePreferenceKeys.statusFilter) ?? 'all',
+  priorityFilter: readStoredValue(workspacePreferenceKeys.priorityFilter) ?? 'all',
+  searchQuery: readStoredValue(workspacePreferenceKeys.searchQuery) ?? '',
   error: null,
   loading: false,
   load: async () => {
     set({ loading: true, error: null });
     try {
       const state = await taskApi.getState();
-      set((current) => ({
+      const selectedListId = pickSelectedListId(state.lists, get().selectedListId, readStoredValue(workspacePreferenceKeys.selectedListId));
+      writeStoredValue(workspacePreferenceKeys.selectedListId, selectedListId);
+      set({
         ...state,
-        selectedListId: state.lists.some((list) => list.id === current.selectedListId) ? current.selectedListId : state.lists[0]?.id ?? null,
+        selectedListId,
         loading: false
-      }));
+      });
     } catch (error) {
       set({ error: getErrorMessage(error), loading: false });
     }
   },
-  setSelectedListId: (id) => set({ selectedListId: id }),
-  setStatusFilter: (statusId) => set({ statusFilter: statusId }),
-  setPriorityFilter: (priorityId) => set({ priorityFilter: priorityId }),
-  setSearchQuery: (query) => set({ searchQuery: query }),
+  setSelectedListId: (id) => {
+    writeStoredValue(workspacePreferenceKeys.selectedListId, id);
+    set({ selectedListId: id });
+  },
+  setStatusFilter: (statusId) => {
+    writeStoredValue(workspacePreferenceKeys.statusFilter, statusId);
+    set({ statusFilter: statusId });
+  },
+  setPriorityFilter: (priorityId) => {
+    writeStoredValue(workspacePreferenceKeys.priorityFilter, priorityId);
+    set({ priorityFilter: priorityId });
+  },
+  setSearchQuery: (query) => {
+    writeStoredValue(workspacePreferenceKeys.searchQuery, query);
+    set({ searchQuery: query });
+  },
   createList: async (name) => {
     const list = await taskApi.createList(name);
     set((state) => ({ lists: [{ ...list, tasks: [] }, ...state.lists], selectedListId: list.id }));
+    writeStoredValue(workspacePreferenceKeys.selectedListId, list.id);
   },
   renameList: async (id, name) => {
     const updated = await taskApi.renameList(id, name);
@@ -124,4 +146,45 @@ function updateTaskInLists(lists: TaskList[], task: Task) {
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Something went wrong.';
+}
+
+function readStoredValue(key: string) {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredValue(key: string, value: string | null) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    if (value === null) {
+      window.localStorage.removeItem(key);
+      return;
+    }
+
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Ignore storage failures so the app keeps working.
+  }
+}
+
+function pickSelectedListId(lists: TaskList[], currentSelection: string | null, storedSelection: string | null) {
+  if (currentSelection && lists.some((list) => list.id === currentSelection)) {
+    return currentSelection;
+  }
+
+  if (storedSelection && lists.some((list) => list.id === storedSelection)) {
+    return storedSelection;
+  }
+
+  return lists[0]?.id ?? null;
 }
