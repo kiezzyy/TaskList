@@ -93,9 +93,9 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
 }));
 
 export function getVisibleTasks(lists: TaskList[], selectedListId: string | null, statusFilter: string, priorityFilter: string, searchQuery: string) {
-  const list = lists.find((item) => item.id === selectedListId);
+  const selectedList = lists.find((taskList) => taskList.id === selectedListId);
   const query = searchQuery.trim().toLowerCase();
-  return (list?.tasks ?? []).filter((task) => {
+  return (selectedList?.tasks ?? []).filter((task) => {
     const matchesStatus = statusFilter === 'all' || task.statusId === statusFilter;
     const matchesPriority = priorityFilter === 'all' || task.priorityId === priorityFilter;
     const matchesSearch = !query || task.name.toLowerCase().includes(query) || (task.description ?? '').toLowerCase().includes(query);
@@ -118,7 +118,7 @@ function addTaskToList(lists: TaskList[], task: Task) {
 function updateTaskInLists(lists: TaskList[], task: Task) {
   return lists.map((list) => ({
     ...list,
-    tasks: list.id === task.listId ? list.tasks.map((item) => (item.id === task.id ? task : item)) : list.tasks
+    tasks: list.id === task.listId ? list.tasks.map((listTask) => (listTask.id === task.id ? task : listTask)) : list.tasks
   }));
 }
 

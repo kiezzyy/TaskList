@@ -1,0 +1,15 @@
+{
+  email {$TASKLIST_CADDY_EMAIL:admin@tasklist.com}
+}
+
+{$TASKLIST_DOMAIN:www.tasklist.com} {
+  encode gzip
+
+  handle_path /api/* {
+    reverse_proxy backend:4000
+  }
+
+  handle {
+    reverse_proxy web:80
+  }
+}

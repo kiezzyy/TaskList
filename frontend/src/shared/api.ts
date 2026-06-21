@@ -1,15 +1,24 @@
 import { localApiDefaults } from './applicationConstants';
 
-function getApiBase() {
+function resolveApiBaseUrl() {
+  const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+  if (configuredApiBaseUrl) {
+    return configuredApiBaseUrl.replace(/\/$/, '');
+  }
+
   if (window.location.protocol === 'file:') {
     const apiPort = new URLSearchParams(window.location.search).get(localApiDefaults.packagedPortQueryKey) ?? localApiDefaults.packagedFallbackPort;
     return `http://${localApiDefaults.packagedHost}:${apiPort}/api`;
   }
 
-  return localApiDefaults.developmentBaseUrl;
+  if (import.meta.env.DEV) {
+    return localApiDefaults.developmentApiBaseUrl;
+  }
+
+  return localApiDefaults.productionApiBaseUrl;
 }
 
-export const apiBase = getApiBase();
+export const apiBase = resolveApiBaseUrl();
 
 export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${apiBase}${path}`, {
@@ -21,8 +30,8 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   });
 
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({ message: 'Request failed' }));
-    throw new Error(payload.details?.join('\n') || payload.message || 'Request failed');
+    const responseBody = await response.json().catch(() => ({ message: 'Request failed' }));
+    throw new Error(responseBody.details?.join('\n') || responseBody.message || 'Request failed');
   }
 
   if (response.status === 204) {

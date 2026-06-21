@@ -1,85 +1,24 @@
 {
   "name": "tasklist-workspace",
   "version": "1.0.10",
-  "description": "A local-first desktop workspace for kanban tasks, timers, and JSON backups.",
+  "description": "A browser-ready workspace for kanban tasks, timers, and JSON backups.",
   "author": "TaskList",
   "private": true,
-  "main": "dist-electron/main.js",
   "scripts": {
     "install:all": "npm install && npm install --prefix backend && npm install --prefix frontend",
     "db:migrate": "npm run db:migrate --prefix backend",
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
-    "dev:electron": "tsc -p electron/tsconfig.json && wait-on http://localhost:5173 http://localhost:4000/api/health && electron .",
-    "dev": "concurrently -k \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:electron\"",
-    "build": "npm run build --prefix backend && npm run build --prefix frontend && tsc -p electron/tsconfig.json",
+    "dev:web": "concurrently -k \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev": "npm run dev:web",
+    "build": "npm run build:web",
+    "build:web": "npm run build --prefix backend && npm run build --prefix frontend",
     "test": "npm run test --prefix backend",
-    "package": "npm run build && electron-builder --dir --publish never",
-    "dist": "npm run build && electron-builder --publish never",
-    "dist:win": "npm run build && electron-builder --win nsis --publish never",
-    "dist:mac": "npm run build && electron-builder --mac dmg --publish never",
-    "dist:linux": "npm run build && electron-builder --linux AppImage --publish never"
-  },
-  "build": {
-    "appId": "com.tasklist.workspace",
-    "productName": "TaskList",
-    "artifactName": "TaskList-${version}-${os}-${arch}.${ext}",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist-electron/**/*",
-      "frontend/dist/**/*",
-      "backend/dist/**/*",
-      "backend/prisma/migrations/**/*",
-      "backend/package.json",
-      "backend/node_modules/**/*",
-      "package.json"
-    ],
-    "asarUnpack": [
-      "backend/node_modules/.prisma/**/*",
-      "backend/node_modules/@prisma/**/*"
-    ],
-    "npmRebuild": false,
-    "win": {
-      "icon": "build/icon.ico",
-      "target": [
-        "nsis"
-      ],
-      "signAndEditExecutable": false
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
-    },
-    "mac": {
-      "icon": "build/icon.icns",
-      "target": [
-        "dmg"
-      ],
-      "category": "public.app-category.productivity"
-    },
-    "linux": {
-      "icon": "build/icon.png",
-      "target": [
-        "AppImage"
-      ],
-      "category": "Office"
-    },
-    "publish": {
-      "provider": "github",
-      "releaseType": "release"
-    }
+    "start": "npm run build:web"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
     "concurrently": "^9.1.0",
-    "electron": "^42.2.0",
-    "electron-builder": "^26.8.1",
-    "typescript": "^5.6.3",
-    "wait-on": "^8.0.1"
+    "typescript": "^5.6.3"
   }
 }

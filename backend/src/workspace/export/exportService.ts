@@ -4,7 +4,7 @@ import { recordActivity } from '../../task/services/activityService.js';
 
 export async function createWorkspaceExport() {
   const exportedAt = new Date();
-  const [statuses, priorities, taskLists, tasks, subtasks, sessions, history, recycleBin] = await Promise.all([
+  const [statuses, priorities, taskLists, tasks, subtasks, taskSessions, history, recycleBin] = await Promise.all([
     prisma.taskStatus.findMany({ orderBy: { sortOrder: 'asc' } }),
     prisma.taskPriority.findMany({ orderBy: { sortOrder: 'asc' } }),
     prisma.taskList.findMany({ orderBy: { updatedAt: 'desc' } }),
@@ -21,8 +21,8 @@ export async function createWorkspaceExport() {
     throw error;
   }
 
-  const exportedSessions = sessions.map((session) => serializeSession(session, exportedAt));
-  const backup = {
+  const serializedTaskSessions = taskSessions.map((taskSession) => serializeTaskSession(taskSession, exportedAt));
+  const workspaceBackup = {
     metadata: {
       appVersion: config.appVersion,
       schemaVersion: config.schemaVersion,
@@ -30,34 +30,34 @@ export async function createWorkspaceExport() {
       totalTaskCount: tasks.length,
       totalTaskListCount: taskLists.length,
       totalSubtaskCount: subtasks.length,
-      totalRecordedWorkDurationSeconds: exportedSessions.reduce((total, session) => total + Number(session.durationSeconds), 0)
+      totalRecordedWorkDurationSeconds: serializedTaskSessions.reduce((total, taskSession) => total + Number(taskSession.durationSeconds), 0)
     },
-    statuses: statuses.map(serialize),
-    priorities: priorities.map(serialize),
-    taskLists: taskLists.map(serialize),
-    tasks: tasks.map(serialize),
-    subtasks: subtasks.map(serialize),
-    sessions: exportedSessions,
-    history: history.map(serialize),
-    recycleBin: recycleBin.map(serialize)
+    statuses: statuses.map(serializeRecord),
+    priorities: priorities.map(serializeRecord),
+    taskLists: taskLists.map(serializeRecord),
+    tasks: tasks.map(serializeRecord),
+    subtasks: subtasks.map(serializeRecord),
+    sessions: serializedTaskSessions,
+    history: history.map(serializeRecord),
+    recycleBin: recycleBin.map(serializeRecord)
   };
 
   await prisma.workspaceMetadata.updateMany({ data: { lastExportAt: new Date(), appVersion: config.appVersion, schemaVersion: config.schemaVersion } });
-  await recordActivity('exported', 'workspace', null, 'Exported workspace backup', backup.metadata);
-  return backup;
+  await recordActivity('exported', 'workspace', null, 'Exported workspace backup', workspaceBackup.metadata);
+  return workspaceBackup;
 }
 
-function serialize<T extends Record<string, unknown>>(record: T) {
+function serializeRecord<T extends Record<string, unknown>>(record: T) {
   return Object.fromEntries(Object.entries(record).map(([key, value]) => [key, value instanceof Date ? value.toISOString() : value]));
 }
 
-function serializeSession(session: { startedAt: Date; endedAt: Date | null; durationSeconds: number } & Record<string, unknown>, exportedAt: Date) {
-  if (session.endedAt) {
-    return serialize(session);
+function serializeTaskSession(taskSession: { startedAt: Date; endedAt: Date | null; durationSeconds: number } & Record<string, unknown>, exportedAt: Date) {
+  if (taskSession.endedAt) {
+    return serializeRecord(taskSession);
   }
-  return serialize({
-    ...session,
+  return serializeRecord({
+    ...taskSession,
     endedAt: exportedAt,
-    durationSeconds: Math.max(0, Math.floor((exportedAt.getTime() - session.startedAt.getTime()) / 1000))
+    durationSeconds: Math.max(0, Math.floor((exportedAt.getTime() - taskSession.startedAt.getTime()) / 1000))
   });
 }

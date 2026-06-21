@@ -30,11 +30,11 @@ export const createTaskList = asyncHandler(async (request, response) => {
 });
 
 export const renameTaskList = asyncHandler(async (request, response) => {
-  response.json(await updateList(routeId(request.params.id), updateListSchema.parse(request.body)));
+  response.json(await updateList(parseRouteId(request.params.id), updateListSchema.parse(request.body)));
 });
 
 export const removeTaskList = asyncHandler(async (request, response) => {
-  await deleteList(routeId(request.params.id));
+  await deleteList(parseRouteId(request.params.id));
   response.status(204).end();
 });
 
@@ -43,16 +43,16 @@ export const createNewTask = asyncHandler(async (request, response) => {
 });
 
 export const editTask = asyncHandler(async (request, response) => {
-  response.json(await updateTask(routeId(request.params.id), updateTaskSchema.parse(request.body)));
+  response.json(await updateTask(parseRouteId(request.params.id), updateTaskSchema.parse(request.body)));
 });
 
 export const removeTask = asyncHandler(async (request, response) => {
-  await deleteTask(routeId(request.params.id));
+  await deleteTask(parseRouteId(request.params.id));
   response.status(204).end();
 });
 
 export const restoreDeletedTask = asyncHandler(async (request, response) => {
-  response.json(await restoreTask(routeId(request.params.id)));
+  response.json(await restoreTask(parseRouteId(request.params.id)));
 });
 
 export const createNewSubtask = asyncHandler(async (request, response) => {
@@ -60,33 +60,33 @@ export const createNewSubtask = asyncHandler(async (request, response) => {
 });
 
 export const editSubtask = asyncHandler(async (request, response) => {
-  response.json(await updateSubtask(routeId(request.params.id), updateSubtaskSchema.parse(request.body)));
+  response.json(await updateSubtask(parseRouteId(request.params.id), updateSubtaskSchema.parse(request.body)));
 });
 
 export const removeSubtask = asyncHandler(async (request, response) => {
-  await deleteSubtask(routeId(request.params.id));
+  await deleteSubtask(parseRouteId(request.params.id));
   response.status(204).end();
 });
 
 export const startTaskTimer = asyncHandler(async (request, response) => {
-  response.status(201).json(await startTimer({ taskId: routeId(request.params.id) }));
+  response.status(201).json(await startTimer({ taskId: parseRouteId(request.params.id) }));
 });
 
 export const stopTaskTimer = asyncHandler(async (request, response) => {
-  response.json(await stopTimer({ taskId: routeId(request.params.id) }));
+  response.json(await stopTimer({ taskId: parseRouteId(request.params.id) }));
 });
 
 export const startSubtaskTimer = asyncHandler(async (request, response) => {
-  response.status(201).json(await startTimer({ subtaskId: routeId(request.params.id) }));
+  response.status(201).json(await startTimer({ subtaskId: parseRouteId(request.params.id) }));
 });
 
 export const stopSubtaskTimer = asyncHandler(async (request, response) => {
-  response.json(await stopTimer({ subtaskId: routeId(request.params.id) }));
+  response.json(await stopTimer({ subtaskId: parseRouteId(request.params.id) }));
 });
 
-function routeId(value: string | string[] | undefined) {
-  if (typeof value === 'string') {
-    return value;
+function parseRouteId(routeValue: string | string[] | undefined) {
+  if (typeof routeValue === 'string') {
+    return routeValue;
   }
   const error = new Error('Route ID must be a single string');
   Object.assign(error, { statusCode: 400 });

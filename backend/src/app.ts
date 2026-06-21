@@ -12,6 +12,7 @@ import { workspaceRouter } from './workspace/routes.js';
 
 export function createServer() {
   const app = express();
+  const allowedOrigins = new Set(config.frontendOrigins);
 
   app.use(helmet());
   app.use(
@@ -21,7 +22,7 @@ export function createServer() {
           callback(null, true);
           return;
         }
-        callback(null, origin === config.frontendOrigin);
+        callback(null, Boolean(origin && allowedOrigins.has(origin)));
       }
     })
   );

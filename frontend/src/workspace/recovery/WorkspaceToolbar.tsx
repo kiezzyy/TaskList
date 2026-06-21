@@ -6,7 +6,7 @@ import { downloadWorkspaceExport } from '../export/exportApi';
 import { analyzeWorkspace, importWorkspace, parseWorkspaceFile } from '../import/importApi';
 
 type PendingImport = {
-  payload: unknown;
+  backupPayload: unknown;
   analysis: ImportAnalysis;
 };
 
@@ -49,13 +49,13 @@ export function WorkspaceToolbar() {
     setMessage('Validating workspace backup...');
     setPendingImport(null);
     try {
-      const payload = await parseWorkspaceFile(file);
-      const analysis = await analyzeWorkspace(payload);
+      const backupPayload = await parseWorkspaceFile(file);
+      const analysis = await analyzeWorkspace(backupPayload);
       if (!analysis.valid) {
         setMessage(`${analysis.errors?.join(' ')} ${analysis.guidance ?? ''}`.trim());
         return;
       }
-      setPendingImport({ payload, analysis });
+      setPendingImport({ backupPayload, analysis });
       setMessage(importReadyMessage(analysis));
     } catch (error) {
       setMessage(getMessage(error));
@@ -71,7 +71,7 @@ export function WorkspaceToolbar() {
     setBusy(true);
     setMessage(mode === 'replace' ? 'Replacing workspace from backup...' : 'Merging workspace backup...');
     try {
-      const summary = await importWorkspace(pendingImport.payload, mode);
+      const summary = await importWorkspace(pendingImport.backupPayload, mode);
       setPendingImport(null);
       await load();
       setMessage(`Import complete: ${summary.taskLists} tabs and ${summary.tasks} tasks.`);
