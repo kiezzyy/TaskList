@@ -1,16 +1,17 @@
-import { Check, Download, FolderOpen, Pencil, Plus, Trash2, Upload } from 'lucide-react';
+import { Check, Download, FolderOpen, Moon, Pencil, Plus, SunMedium, Trash2, Upload } from 'lucide-react';
 import { ChangeEvent, FormEvent, useRef, useState } from 'react';
 import { useWorkspaceStore } from '../../task/hooks/useWorkspaceStore';
 import { ImportAnalysis } from '../../task/services/types';
 import { downloadWorkspaceExport } from '../export/exportApi';
 import { analyzeWorkspace, importWorkspace, parseWorkspaceFile } from '../import/importApi';
+import type { ThemeMode } from '../../shared/theme';
 
 type PendingImport = {
   payload: unknown;
   analysis: ImportAnalysis;
 };
 
-export function WorkspaceToolbar() {
+export function WorkspaceToolbar({ themeMode, onToggleTheme }: { themeMode: ThemeMode; onToggleTheme: () => void }) {
   const { lists, selectedListId, setSelectedListId, createList, renameList, deleteList, load } = useWorkspaceStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -129,6 +130,10 @@ export function WorkspaceToolbar() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button className="inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm hover:bg-zinc-50" onClick={onToggleTheme} title="Toggle dark mode">
+            {themeMode === 'dark' ? <SunMedium size={16} /> : <Moon size={16} />}
+            {themeMode === 'dark' ? 'Light mode' : 'Dark mode'}
+          </button>
           <button
             className="inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm hover:bg-zinc-50 disabled:opacity-50"
             onClick={exportWorkspace}
@@ -160,9 +165,9 @@ export function WorkspaceToolbar() {
                 selectedListId === list.id ? 'border-zinc-950 bg-zinc-950 text-white' : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300'
               }`}
               onClick={() => setSelectedListId(list.id)}
-            >
-              <span className="max-w-44 truncate">{list.name}</span>
-              <span className={selectedListId === list.id ? 'text-zinc-300' : 'text-zinc-400'}>{list.tasks.length}</span>
+        >
+          <span className="max-w-44 truncate">{list.name}</span>
+          <span className={selectedListId === list.id ? 'text-zinc-300' : 'text-zinc-400'}>{list.tasks.length}</span>
               <span
                 className="grid h-5 w-5 place-items-center rounded-full opacity-70 hover:bg-white/20"
                 title="Rename tab"
