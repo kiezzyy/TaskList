@@ -10,6 +10,14 @@ dist-electron/
 frontend/dist/
 backend/dist/
 electron/dist/
+mobile/android/.gradle/
+mobile/android/**/build/
+mobile/android/capacitor-cordova-android-plugins/
+mobile/android/capacitor.settings.gradle
+mobile/android/gradle/
+mobile/android/local.properties
+mobile/android/*.iml
+*.apk
 *.tsbuildinfo
 
 # Environment and secrets

@@ -72,6 +72,12 @@ export interface WorkspaceState {
   recycleBin: RecycleBinItem[];
 }
 
+export interface ServerHealth {
+  ok: boolean;
+  app: string;
+  version: string;
+}
+
 export interface ActivityEvent {
   id: string;
   type: string;

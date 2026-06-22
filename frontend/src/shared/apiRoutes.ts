@@ -1,4 +1,5 @@
 export const apiRoutes = {
+  health: '/health',
   state: '/state',
   lists: '/lists',
   list: (listId: string) => `/lists/${listId}`,

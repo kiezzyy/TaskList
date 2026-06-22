@@ -24,8 +24,8 @@ export function TaskCard({ task, compact, onDragStart }: { task: Task; compact: 
   return (
     <>
       <article
-        className={`group w-full overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm shadow-zinc-200/60 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md ${
-          compact ? 'h-16 p-2.5' : 'h-56 p-3'
+        className={`group w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm shadow-zinc-200/60 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-lg ${
+          compact ? 'min-h-14 p-3' : 'min-h-56 p-3.5'
         }`}
         draggable={!editing}
         onClick={() => {
@@ -35,11 +35,11 @@ export function TaskCard({ task, compact, onDragStart }: { task: Task; compact: 
         }}
         onDragStart={() => onDragStart(task.id)}
       >
-        <div className={`flex h-full flex-col ${compact ? 'gap-2' : 'gap-2.5'}`}>
+        <div className={`flex h-full flex-col ${compact ? 'gap-1.5' : 'gap-3'}`}>
           <div className="min-w-0">
-            <div className="flex items-start gap-2">
-              <GripVertical className="mt-1 shrink-0 text-zinc-300 transition group-hover:text-zinc-500" size={16} />
-              <ChevronRight className="mt-1 shrink-0 text-zinc-400 transition group-hover:translate-x-0.5 group-hover:text-zinc-700" size={16} />
+            <div className={`flex items-start ${compact ? 'gap-0' : 'gap-2'}`}>
+              {compact ? null : <GripVertical className="mt-1 shrink-0 text-zinc-300 transition group-hover:text-zinc-500" size={16} />}
+              {compact ? null : <ChevronRight className="mt-1 shrink-0 text-zinc-400 transition group-hover:translate-x-0.5 group-hover:text-zinc-700" size={16} />}
               {editing ? (
                 <input
                   className="min-w-0 flex-1 rounded border border-zinc-300 px-3 py-2 text-sm"
@@ -60,9 +60,16 @@ export function TaskCard({ task, compact, onDragStart }: { task: Task; compact: 
                 onChange={(event) => setDescription(event.target.value)}
               />
             ) : task.description && !compact ? (
-              <p className="mt-2 line-clamp-2 max-h-12 overflow-hidden whitespace-pre-wrap text-sm leading-6 text-zinc-600">{task.description}</p>
+              <p className="mt-2 line-clamp-3 overflow-hidden whitespace-pre-wrap text-sm leading-6 text-zinc-600">{task.description}</p>
             ) : null}
           </div>
+
+          {!compact ? (
+            <div className="flex flex-wrap items-center gap-2" onClick={stopCardClick}>
+              <TaskBadge label={task.status.name} />
+              <TaskBadge label={task.priority.name} />
+            </div>
+          ) : null}
 
           <div className={`mt-auto flex-wrap items-center gap-2 text-xs text-zinc-500 ${compact ? 'hidden' : 'flex'}`} onClick={stopCardClick}>
             <TaskTimer task={task} />
@@ -72,19 +79,19 @@ export function TaskCard({ task, compact, onDragStart }: { task: Task; compact: 
           <div className={`flex-wrap items-center gap-2 ${compact ? 'hidden' : 'flex'}`} onClick={stopCardClick}>
             {editing ? (
               <>
-                <button className="grid h-8 w-8 place-items-center rounded-md bg-zinc-950 text-white" title="Save task" onClick={save}>
+                <button className="grid h-8 w-8 place-items-center rounded-md bg-zinc-950 text-white transition hover:-translate-y-0.5 hover:bg-zinc-800" title="Save task" onClick={save}>
                   <Check size={15} />
                 </button>
-                <button className="grid h-8 w-8 place-items-center rounded-md border border-zinc-200" title="Cancel edit" onClick={() => setEditing(false)}>
+                <button className="grid h-8 w-8 place-items-center rounded-md border border-zinc-200 transition hover:bg-zinc-50" title="Cancel edit" onClick={() => setEditing(false)}>
                   <X size={15} />
                 </button>
               </>
             ) : (
-              <button className="grid h-8 w-8 place-items-center rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-50" title="Edit task" onClick={() => setEditing(true)}>
+              <button className="grid h-8 w-8 place-items-center rounded-md border border-zinc-200 text-zinc-600 transition hover:bg-zinc-50" title="Edit task" onClick={() => setEditing(true)}>
                 <Pencil size={15} />
               </button>
             )}
-            <button className="grid h-8 w-8 place-items-center rounded-md border border-red-100 text-red-600 hover:bg-red-50" title="Move task to recycle bin" onClick={() => deleteTask(task.id)}>
+            <button className="grid h-8 w-8 place-items-center rounded-md border border-red-100 text-red-600 transition hover:bg-red-50" title="Move task to recycle bin" onClick={() => deleteTask(task.id)}>
               <Trash2 size={15} />
             </button>
           </div>
@@ -94,6 +101,10 @@ export function TaskCard({ task, compact, onDragStart }: { task: Task; compact: 
       <TaskDetailsModal task={task} open={detailsOpen} onClose={() => setDetailsOpen(false)} />
     </>
   );
+}
+
+function TaskBadge({ label }: { label: string }) {
+  return <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-600">{label}</span>;
 }
 
 function TaskDetailsModal({ task, open, onClose }: { task: Task; open: boolean; onClose: () => void }) {

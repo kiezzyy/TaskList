@@ -1,7 +1,7 @@
 import { Check, Download, FolderOpen, Moon, Pencil, Plus, SunMedium, Trash2, Upload } from 'lucide-react';
 import { ChangeEvent, FormEvent, useRef, useState } from 'react';
 import { useWorkspaceStore } from '../../task/hooks/useWorkspaceStore';
-import { ImportAnalysis } from '../../task/services/types';
+import { ImportAnalysis, ServerHealth } from '../../task/services/types';
 import { downloadWorkspaceExport } from '../export/exportApi';
 import { analyzeWorkspace, importWorkspace, parseWorkspaceFile } from '../import/importApi';
 import type { ThemeMode } from '../../shared/theme';
@@ -11,7 +11,19 @@ type PendingImport = {
   analysis: ImportAnalysis;
 };
 
-export function WorkspaceToolbar({ themeMode, onToggleTheme }: { themeMode: ThemeMode; onToggleTheme: () => void }) {
+export function WorkspaceToolbar({
+  themeMode,
+  onToggleTheme,
+  serverHealth,
+  updateAvailable,
+  onRefreshUpdate
+}: {
+  themeMode: ThemeMode;
+  onToggleTheme: () => void;
+  serverHealth: ServerHealth | null;
+  updateAvailable: boolean;
+  onRefreshUpdate: () => void;
+}) {
   const { lists, selectedListId, setSelectedListId, createList, renameList, deleteList, load } = useWorkspaceStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -108,12 +120,22 @@ export function WorkspaceToolbar({ themeMode, onToggleTheme }: { themeMode: Them
     <div className="flex flex-col gap-3 px-4 py-3">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex items-center gap-3">
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-white shadow-sm">
+          <div className="grid h-10 w-10 place-items-center rounded-2xl border border-white/70 bg-zinc-950 text-white shadow-lg shadow-zinc-950/10">
             <FolderOpen size={18} />
           </div>
           <div>
-            <h2 className="text-base font-semibold">Personal Workspace</h2>
-            <p className="text-xs text-zinc-500">{message ?? 'SQLite persistence, JSON backups, and local-first task tracking.'}</p>
+            <h2 className="text-base font-semibold tracking-tight">Personal Workspace</h2>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+              <span>{message ?? 'SQLite persistence, JSON backups, and local-first task tracking.'}</span>
+              <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[11px] font-medium text-zinc-600">
+                {serverHealth ? `${serverHealth.app} ${serverHealth.version}` : 'Health check pending'}
+              </span>
+              {updateAvailable ? (
+                <button className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900 transition hover:bg-amber-100" onClick={onRefreshUpdate}>
+                  Refresh to update
+                </button>
+              ) : null}
+            </div>
             {pendingImport ? (
               <div className="mt-2 flex flex-wrap gap-2">
                 <button className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50" onClick={() => confirmImport('merge')} disabled={busy}>
@@ -130,19 +152,19 @@ export function WorkspaceToolbar({ themeMode, onToggleTheme }: { themeMode: Them
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button className="inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm hover:bg-zinc-50" onClick={onToggleTheme} title="Toggle dark mode">
+          <button className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium hover:bg-zinc-50" onClick={onToggleTheme} title="Toggle dark mode">
             {themeMode === 'dark' ? <SunMedium size={16} /> : <Moon size={16} />}
             {themeMode === 'dark' ? 'Light mode' : 'Dark mode'}
           </button>
           <button
-            className="inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm hover:bg-zinc-50 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium hover:bg-zinc-50 disabled:opacity-50"
             onClick={exportWorkspace}
             disabled={busy || !canExport}
             title={canExport ? 'Export workspace' : 'Create a tab before exporting'}
           >
             <Download size={16} /> Export
           </button>
-          <button className="inline-flex items-center gap-2 rounded-md bg-zinc-950 px-3 py-2 text-sm text-white disabled:opacity-60" onClick={() => inputRef.current?.click()} disabled={busy}>
+          <button className="inline-flex items-center gap-2 rounded-full bg-zinc-950 px-3.5 py-2 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-zinc-800 disabled:opacity-60" onClick={() => inputRef.current?.click()} disabled={busy}>
             <Upload size={16} /> Import
           </button>
           <input ref={inputRef} className="hidden" type="file" accept="application/json,.json" onChange={handleImport} />

@@ -13,7 +13,7 @@ export function ActivityPanel({ open, onClose }: { open: boolean; onClose: () =>
   }
 
   return (
-    <div className="fixed inset-0 z-40 bg-zinc-950/20 backdrop-blur-sm animate-in fade-in duration-150" onClick={onClose}>
+    <div className="fixed inset-0 z-40 bg-zinc-950/25 backdrop-blur-sm animate-in fade-in duration-150" onClick={onClose}>
       <aside
         className="ml-auto flex h-full w-full max-w-xl flex-col border-l border-zinc-200 bg-white shadow-2xl shadow-zinc-950/20 animate-in slide-in-from-right duration-200"
         onClick={(event) => event.stopPropagation()}
@@ -44,8 +44,8 @@ function HistoryGroup({ group }: { group: { id: string; name: string; events: Ac
   const [expanded, setExpanded] = useState(true);
 
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white">
-      <button className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-zinc-50" onClick={() => setExpanded((value) => !value)}>
+    <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <button className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-zinc-50 hover:font-medium" onClick={() => setExpanded((value) => !value)}>
         <span className="min-w-0">
           <span className="block truncate text-sm font-semibold text-zinc-950">{group.name}</span>
           <span className="text-xs text-zinc-500">{group.events.length} activity events</span>
@@ -55,11 +55,11 @@ function HistoryGroup({ group }: { group: { id: string; name: string; events: Ac
       <div className={`grid overflow-hidden transition-all duration-200 ease-out ${expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
         <div className="space-y-2 border-t border-zinc-100 p-3">
           {group.events.map((event) => (
-            <div key={event.id} className="rounded-md bg-zinc-50 p-3 text-sm">
+            <div key={event.id} className="rounded-xl bg-zinc-50 p-3 text-sm transition hover:bg-zinc-100/80 hover:shadow-sm">
               <div className="flex items-start gap-2">
                 <Clock3 className="mt-0.5 shrink-0 text-zinc-400" size={14} />
                 <div className="min-w-0">
-                  <p className="text-zinc-800">{event.message}</p>
+                  <p className="font-medium text-zinc-800">{event.message}</p>
                   <p className="mt-1 text-xs text-zinc-500">{formatDateTime(event.createdAt)}</p>
                 </div>
               </div>

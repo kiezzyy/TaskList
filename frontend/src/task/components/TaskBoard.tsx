@@ -1,4 +1,4 @@
-import { LayoutGrid, PanelTop, Plus, Search, SlidersHorizontal } from 'lucide-react';
+import { LayoutGrid, PanelTop, Plus, Search, Sparkles, SlidersHorizontal } from 'lucide-react';
 import { DragEvent, useEffect, useMemo, useState } from 'react';
 import { taskStatusNames } from '../../shared/applicationConstants';
 import { getVisibleTasks, useWorkspaceStore } from '../hooks/useWorkspaceStore';
@@ -62,15 +62,19 @@ export function TaskBoard() {
 
   return (
     <div id="workspace" className="flex min-h-0 flex-1 flex-col gap-4">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+      <div className="rounded-[1.5rem] border border-white/70 bg-gradient-to-br from-white via-zinc-50 to-zinc-100/80 p-4 shadow-sm shadow-zinc-200/50">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">Workspace</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950">{selectedList.name}</h2>
+          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+            <Sparkles size={12} />
+            Workspace
+          </div>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-950">{selectedList.name}</h2>
           <p className="mt-1 text-sm text-zinc-500">
             {selectedList.tasks.length} tasks across {orderedStatuses.length} kanban stages
           </p>
         </div>
-        <div className="grid gap-2 sm:grid-cols-[minmax(180px,280px)_auto_auto_auto_auto]">
+        <div className="grid gap-2 sm:grid-cols-[minmax(180px,280px)_auto_auto_auto_auto_auto]">
           <label className="relative">
             <Search className="absolute left-3 top-2.5 text-zinc-400" size={16} />
             <input
@@ -108,10 +112,14 @@ export function TaskBoard() {
           >
             {compactMode ? <PanelTop className="transition-transform duration-200 rotate-180" size={17} /> : <LayoutGrid className="transition-transform duration-200" size={17} />}
           </button>
+          <button className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:-translate-y-0.5 hover:bg-zinc-50" onClick={() => setTaskModalOpen(true)}>
+            <Plus size={16} /> Add Item
+          </button>
           <button className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-zinc-800" onClick={() => setTaskModalOpen(true)}>
             <Plus size={16} /> Add Task
           </button>
         </div>
+      </div>
       </div>
 
       <TaskForm listId={selectedList.id} open={taskModalOpen} onClose={() => setTaskModalOpen(false)} />
@@ -170,7 +178,7 @@ function KanbanColumn({
 
   return (
     <section
-      className={`flex min-h-[26rem] min-w-[18rem] flex-col rounded-lg border border-zinc-200 ${style.bg} p-3 transition-all duration-200`}
+      className={`flex min-h-[26rem] min-w-[18rem] flex-col rounded-[1.25rem] border border-zinc-200 ${style.bg} p-3 transition-all duration-200`}
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => onDrop(event, status.id)}
     >

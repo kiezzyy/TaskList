@@ -1,8 +1,9 @@
 import { apiRequest } from '../../shared/api';
 import { apiRoutes } from '../../shared/apiRoutes';
-import { Task, TaskList, WorkspaceState } from './types';
+import { ServerHealth, Task, TaskList, WorkspaceState } from './types';
 
 export const taskApi = {
+  getHealth: () => apiRequest<ServerHealth>(apiRoutes.health),
   getState: () => apiRequest<WorkspaceState>(apiRoutes.state),
   createList: (name: string) => apiRequest<TaskList>(apiRoutes.lists, post({ name })),
   renameList: (id: string, name: string) => apiRequest<TaskList>(apiRoutes.list(id), patch({ name })),
