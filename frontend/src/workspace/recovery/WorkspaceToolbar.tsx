@@ -1,5 +1,6 @@
 import { Check, Download, FolderOpen, Moon, Pencil, Plus, SunMedium, Trash2, Upload } from 'lucide-react';
-import { ChangeEvent, FormEvent, useRef, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
+import { getConfiguredApiBase, isMobileBackendSetupRequired, setApiBaseOverride } from '../../shared/api';
 import { useWorkspaceStore } from '../../task/hooks/useWorkspaceStore';
 import { ImportAnalysis, ServerHealth } from '../../task/services/types';
 import { downloadWorkspaceExport } from '../export/exportApi';
@@ -32,7 +33,18 @@ export function WorkspaceToolbar({
   const [newTabName, setNewTabName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [apiBaseInput, setApiBaseInput] = useState('');
+  const [apiSetupRequired, setApiSetupRequired] = useState(isMobileBackendSetupRequired());
   const canExport = lists.length > 0;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    setApiBaseInput(window.localStorage.getItem('tasklist-api-base-url') ?? '');
+    setApiSetupRequired(isMobileBackendSetupRequired());
+  }, []);
 
   async function exportWorkspace() {
     if (!canExport) {
@@ -116,6 +128,24 @@ export function WorkspaceToolbar({
     setEditingId(null);
   }
 
+  async function saveApiBaseUrl() {
+    try {
+      setApiBaseOverride(apiBaseInput);
+      setApiSetupRequired(isMobileBackendSetupRequired());
+      setMessage('Backend URL saved. Reloading workspace data...');
+      await load();
+    } catch (error) {
+      setMessage(getMessage(error));
+    }
+  }
+
+  function clearApiBaseUrl() {
+    setApiBaseOverride(null);
+    setApiBaseInput('');
+    setApiSetupRequired(isMobileBackendSetupRequired());
+    setMessage('Backend URL cleared.');
+  }
+
   return (
     <div className="flex flex-col gap-3 px-4 py-3">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -147,6 +177,37 @@ export function WorkspaceToolbar({
                 <button className="rounded-md px-2.5 py-1 text-xs font-medium text-zinc-500 hover:bg-zinc-100" onClick={cancelImport} disabled={busy}>
                   Cancel
                 </button>
+              </div>
+            ) : null}
+            {apiSetupRequired ? (
+              <div className="mt-3 max-w-xl rounded-2xl border border-amber-200 bg-amber-50 p-3 text-amber-950 shadow-sm">
+                <p className="text-sm font-semibold">Mobile backend required</p>
+                <p className="mt-1 text-xs leading-5 text-amber-900/80">
+                  This APK needs a real backend URL. The local Android web shell cannot serve the API by itself.
+                </p>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <input
+                    className="min-w-0 flex-1 rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400"
+                    value={apiBaseInput}
+                    onChange={(event) => setApiBaseInput(event.target.value)}
+                    placeholder="https://your-tasklist-api.example/api"
+                  />
+                  <button
+                    className="rounded-lg bg-amber-950 px-3 py-2 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-amber-900 disabled:opacity-60"
+                    onClick={saveApiBaseUrl}
+                    disabled={busy}
+                  >
+                    Save URL
+                  </button>
+                  <button
+                    className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:opacity-60"
+                    onClick={clearApiBaseUrl}
+                    disabled={busy}
+                  >
+                    Clear
+                  </button>
+                </div>
+                {getConfiguredApiBase() ? <p className="mt-2 text-[11px] text-amber-900/70">Current API: {getConfiguredApiBase()}</p> : null}
               </div>
             ) : null}
           </div>

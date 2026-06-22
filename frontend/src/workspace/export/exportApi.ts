@@ -1,7 +1,12 @@
-import { apiBase } from '../../shared/api';
+import { getConfiguredApiBase } from '../../shared/api';
 import { apiRoutes } from '../../shared/apiRoutes';
 
 export async function downloadWorkspaceExport() {
+  const apiBase = getConfiguredApiBase();
+  if (!apiBase) {
+    throw new Error('Set a backend URL on mobile before exporting the workspace.');
+  }
+
   const response = await fetch(`${apiBase}${apiRoutes.exportWorkspace}`);
   if (!response.ok) {
     throw new Error('Workspace export failed.');
