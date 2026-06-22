@@ -25,14 +25,24 @@ jobs:
             os: windows-latest
             script: dist:win
             artifact: release/*.exe
+            upload_name: TaskList-Windows
           - name: macOS
             os: macos-latest
             script: dist:mac
             artifact: release/*.dmg
+            upload_name: TaskList-macOS
           - name: Linux
             os: ubuntu-latest
             script: dist:linux
             artifact: release/*.AppImage
+            upload_name: TaskList-Linux
+          - name: Android
+            os: ubuntu-latest
+            script: mobile:apk
+            artifact: release/TaskList-${{ github.ref_name }}-android.apk
+            setup_java: true
+            setup_android: true
+            upload_name: TaskList-Android
 
     steps:
       - name: Checkout
@@ -57,22 +67,49 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
 
+      - name: Setup Java
+        if: matrix.setup_java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Android SDK
+        if: matrix.setup_android
+        uses: android-actions/setup-android@v3
+
       - name: Generate Prisma client
+        if: matrix.name != 'Android'
         run: npm run prisma:generate --prefix backend
 
       - name: Run backend tests
+        if: matrix.name != 'Android'
         run: npm run test --prefix backend
 
       - name: Build and package desktop app
+        if: matrix.name != 'Android'
         run: npm run ${{ matrix.script }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
+      - name: Build Android APK
+        if: matrix.name == 'Android'
+        run: npm run ${{ matrix.script }}
+        env:
+          TASKLIST_WEB_URL: ${{ vars.TASKLIST_WEB_URL }}
+
+      - name: Stage Android APK for release
+        if: matrix.name == 'Android'
+        shell: bash
+        run: |
+          mkdir -p release
+          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk "release/TaskList-${GITHUB_REF_NAME}-android.apk"
+
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: TaskList-${{ matrix.name }}
+          name: ${{ matrix.upload_name }}
           path: ${{ matrix.artifact }}
           if-no-files-found: error
 
