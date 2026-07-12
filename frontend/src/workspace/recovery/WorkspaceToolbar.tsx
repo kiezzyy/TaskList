@@ -161,8 +161,8 @@ export function WorkspaceToolbar({
                 {serverHealth ? `${serverHealth.app} ${serverHealth.version}` : 'Health check pending'}
               </span>
               {updateAvailable ? (
-                <button className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900 transition hover:bg-amber-100" onClick={onRefreshUpdate}>
-                  Refresh to update
+                <button className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900 transition hover:bg-amber-100" onClick={onRefreshUpdate} type="button">
+                  Open release
                 </button>
               ) : null}
             </div>
