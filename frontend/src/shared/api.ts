@@ -30,6 +30,10 @@ function getApiBase() {
     return builtInMobileApiBase;
   }
 
+  if (isNativeShell && isRemoteHttpOrigin()) {
+    return new URL('/api', window.location.origin).toString().replace(/\/$/, '');
+  }
+
   const isLocalDevHost = window.location.hostname === 'localhost' && window.location.port === '5173';
   if (isLocalDevHost) {
     return localApiDefaults.developmentBaseUrl;
@@ -160,4 +164,8 @@ function isCapacitorNativeShell() {
     };
   };
   return Boolean(capacitorGlobal.Capacitor?.isNativePlatform?.());
+}
+
+function isRemoteHttpOrigin() {
+  return (window.location.protocol === 'https:' || window.location.protocol === 'http:') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
 }

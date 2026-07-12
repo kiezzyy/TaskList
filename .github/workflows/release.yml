@@ -17,7 +17,7 @@ jobs:
   build:
     name: Build ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    strategy:
+      strategy:
       fail-fast: false
       matrix:
         include:
@@ -26,16 +26,6 @@ jobs:
             script: dist:win
             artifact: release/*.exe
             upload_name: TaskList-Windows
-          - name: macOS
-            os: macos-latest
-            script: dist:mac
-            artifact: release/*.dmg
-            upload_name: TaskList-macOS
-          - name: Linux
-            os: ubuntu-latest
-            script: dist:linux
-            artifact: release/*.AppImage
-            upload_name: TaskList-Linux
           - name: Android
             os: ubuntu-latest
             script: mobile:apk
