@@ -7,8 +7,10 @@ import { fileURLToPath } from 'node:url';
 const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const androidProjectRoot = join(repositoryRoot, 'mobile', 'android');
 const apkOutputPath = join(androidProjectRoot, 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');
+const gradleWrapperJarPath = join(androidProjectRoot, 'gradle', 'wrapper', 'gradle-wrapper.jar');
 const compatibleJavaHome = findCompatibleJavaHome(process.env.JAVA_HOME) ?? findCompatibleJavaHome();
 const compatibleAndroidSdk = process.env.ANDROID_HOME ?? process.env.ANDROID_SDK_ROOT ?? findAndroidSdk();
+const javaExecutable = compatibleJavaHome ? join(compatibleJavaHome, 'bin', process.platform === 'win32' ? 'java.exe' : 'java') : null;
 
 const buildEnvironment = {
   ...process.env,
@@ -113,7 +115,9 @@ function findAndroidSdk() {
 
 function commandInvocation(baseName, commandArguments) {
   if (process.platform !== 'win32') {
-    return [baseName === 'gradlew' ? 'bash' : baseName, baseName === 'gradlew' ? ['./gradlew', ...commandArguments] : commandArguments];
+    return baseName === 'gradlew'
+      ? [javaExecutable ?? 'java', ['-classpath', gradleWrapperJarPath, 'org.gradle.wrapper.GradleWrapperMain', ...commandArguments]]
+      : [baseName, commandArguments];
   }
 
   if (baseName === 'gradlew') {
