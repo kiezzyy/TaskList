@@ -42,7 +42,7 @@ export function WorkspaceToolbar({
       return;
     }
 
-    setApiBaseInput(window.localStorage.getItem('tasklist-api-base-url') ?? '');
+    setApiBaseInput(getConfiguredApiBase() ?? '');
     setApiSetupRequired(isMobileBackendSetupRequired());
   }, []);
 
@@ -141,7 +141,7 @@ export function WorkspaceToolbar({
 
   function clearApiBaseUrl() {
     setApiBaseOverride(null);
-    setApiBaseInput('');
+    setApiBaseInput(getConfiguredApiBase() ?? '');
     setApiSetupRequired(isMobileBackendSetupRequired());
     setMessage('Backend URL cleared.');
   }
@@ -193,6 +193,7 @@ export function WorkspaceToolbar({
                     placeholder="https://your-tasklist-api.example/api"
                   />
                   <button
+                    type="button"
                     className="rounded-lg bg-amber-950 px-3 py-2 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-amber-900 disabled:opacity-60"
                     onClick={saveApiBaseUrl}
                     disabled={busy}
@@ -200,6 +201,7 @@ export function WorkspaceToolbar({
                     Save URL
                   </button>
                   <button
+                    type="button"
                     className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:opacity-60"
                     onClick={clearApiBaseUrl}
                     disabled={busy}
@@ -237,7 +239,12 @@ export function WorkspaceToolbar({
           editingId === list.id ? (
             <div key={list.id} className="flex min-w-48 items-center gap-1 rounded-full border border-zinc-200 bg-white px-2 py-1">
               <input className="min-w-0 flex-1 bg-transparent px-2 text-sm outline-none" value={editingName} onChange={(event) => setEditingName(event.target.value)} />
-              <button className="grid h-7 w-7 place-items-center rounded-full bg-zinc-950 text-white" title="Save tab name" onClick={() => saveTabName(list.id)}>
+              <button
+                type="button"
+                className="grid h-7 w-7 place-items-center rounded-full bg-zinc-950 text-white"
+                title="Save tab name"
+                onClick={() => saveTabName(list.id)}
+              >
                 <Check size={14} />
               </button>
             </div>
@@ -277,7 +284,7 @@ export function WorkspaceToolbar({
         )}
         <form className="flex shrink-0 items-center gap-1 rounded-full border border-zinc-200 bg-white px-2 py-1" onSubmit={addTab}>
           <input className="w-28 bg-transparent px-2 text-sm outline-none sm:w-36" value={newTabName} onChange={(event) => setNewTabName(event.target.value)} placeholder="New tab" />
-          <button className="grid h-7 w-7 place-items-center rounded-full bg-zinc-950 text-white" title="Create tab">
+          <button type="submit" className="grid h-7 w-7 place-items-center rounded-full bg-zinc-950 text-white" title="Create tab">
             <Plus size={14} />
           </button>
         </form>

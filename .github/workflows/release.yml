@@ -97,6 +97,7 @@ jobs:
         if: matrix.name == 'Android'
         run: npm run ${{ matrix.script }}
         env:
+          VITE_TASKLIST_API_BASE_URL: ${{ vars.TASKLIST_API_BASE_URL }}
           TASKLIST_WEB_URL: ${{ vars.TASKLIST_WEB_URL }}
 
       - name: Stage Android APK for release

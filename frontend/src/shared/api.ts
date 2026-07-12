@@ -15,14 +15,19 @@ function getApiBase() {
     return overrideFromQuery;
   }
 
+  const builtInMobileApiBase = readBuiltInMobileApiBase();
+  const isNativeShell = isCapacitorNativeShell();
   if (window.location.protocol === 'file:') {
     const apiPort = new URLSearchParams(window.location.search).get(localApiDefaults.packagedPortQueryKey) ?? localApiDefaults.packagedFallbackPort;
     return `http://${localApiDefaults.packagedHost}:${apiPort}/api`;
   }
 
-  const isNativeShell = isCapacitorNativeShell();
   if (isNativeShell && window.location.hostname === 'localhost') {
-    return null;
+    return builtInMobileApiBase ?? null;
+  }
+
+  if (isNativeShell && builtInMobileApiBase) {
+    return builtInMobileApiBase;
   }
 
   const isLocalDevHost = window.location.hostname === 'localhost' && window.location.port === '5173';
@@ -38,7 +43,7 @@ export function getConfiguredApiBase() {
 }
 
 export function isMobileBackendSetupRequired() {
-  return typeof window !== 'undefined' && isCapacitorNativeShell() && window.location.hostname === 'localhost' && !readOverride(window.localStorage.getItem('tasklist-api-base-url'));
+  return typeof window !== 'undefined' && isCapacitorNativeShell() && !readOverride(window.localStorage.getItem('tasklist-api-base-url')) && !readBuiltInMobileApiBase();
 }
 
 export function setApiBaseOverride(apiBaseUrl: string | null) {
@@ -105,6 +110,10 @@ function readOverride(rawValue: string | null) {
   }
 
   return trimmedValue.replace(/\/+$/, '');
+}
+
+function readBuiltInMobileApiBase() {
+  return readOverride(import.meta.env.VITE_TASKLIST_API_BASE_URL ?? null);
 }
 
 async function readErrorMessage(response: Response, apiBase: string) {

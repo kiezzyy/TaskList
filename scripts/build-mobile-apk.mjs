@@ -7,15 +7,17 @@ import { fileURLToPath } from 'node:url';
 const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const androidProjectRoot = join(repositoryRoot, 'mobile', 'android');
 const apkOutputPath = join(androidProjectRoot, 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');
+const compatibleJavaHome = findCompatibleJavaHome(process.env.JAVA_HOME) ?? findCompatibleJavaHome();
+const compatibleAndroidSdk = process.env.ANDROID_HOME ?? process.env.ANDROID_SDK_ROOT ?? findAndroidSdk();
 
 const buildEnvironment = {
   ...process.env,
-  JAVA_HOME: process.env.JAVA_HOME ?? findJavaHome(),
-  ANDROID_HOME: process.env.ANDROID_HOME ?? process.env.ANDROID_SDK_ROOT ?? findAndroidSdk()
+  JAVA_HOME: compatibleJavaHome,
+  ANDROID_HOME: compatibleAndroidSdk ?? undefined
 };
 
 if (!buildEnvironment.JAVA_HOME) {
-  throw new Error('Unable to find a compatible Java runtime. Set JAVA_HOME to an Android Studio JBR or JDK 17+.');
+  throw new Error('Unable to find a compatible Java runtime. Install Android Studio JBR or JDK 17-21, then set JAVA_HOME to it.');
 }
 
 if (!buildEnvironment.ANDROID_HOME) {
@@ -54,8 +56,24 @@ if (existsSync(apkOutputPath)) {
   console.log(`APK ready at ${apkOutputPath}`);
 }
 
-function findJavaHome() {
-  const candidateHomes = process.platform === 'win32'
+function findCompatibleJavaHome(preferredJavaHome = null) {
+  const candidateHomes = [
+    preferredJavaHome,
+    ...getKnownJavaHomes()
+  ].filter((candidateHome, index, homes) => Boolean(candidateHome) && homes.indexOf(candidateHome) === index);
+
+  for (const candidateHome of candidateHomes) {
+    const majorVersion = readJavaMajorVersion(candidateHome);
+    if (majorVersion !== null && majorVersion >= 17 && majorVersion <= 21) {
+      return candidateHome;
+    }
+  }
+
+  return null;
+}
+
+function getKnownJavaHomes() {
+  return process.platform === 'win32'
     ? [
         'C:\\Program Files\\Android\\Android Studio\\jbr',
         'C:\\Program Files\\Java\\jdk-21',
@@ -65,7 +83,22 @@ function findJavaHome() {
       ? ['/Applications/Android Studio.app/Contents/jbr/Contents/Home']
       : ['/usr/local/android-studio/jbr', '/opt/android-studio/jbr'];
 
-  return candidateHomes.find((candidateHome) => existsSync(candidateHome)) ?? null;
+}
+
+function readJavaMajorVersion(javaHome) {
+  if (!javaHome || !existsSync(javaHome)) {
+    return null;
+  }
+
+  const javaExecutable = join(javaHome, 'bin', process.platform === 'win32' ? 'java.exe' : 'java');
+  if (!existsSync(javaExecutable)) {
+    return null;
+  }
+
+  const versionProbe = spawnSync(javaExecutable, ['-version'], { encoding: 'utf8' });
+  const versionOutput = `${versionProbe.stderr ?? ''}\n${versionProbe.stdout ?? ''}`;
+  const versionMatch = versionOutput.match(/version\s+"(?:1\.)?(\d+)/i);
+  return versionMatch ? Number(versionMatch[1]) : null;
 }
 
 function findAndroidSdk() {
