@@ -113,7 +113,7 @@ function findAndroidSdk() {
 
 function commandInvocation(baseName, commandArguments) {
   if (process.platform !== 'win32') {
-    return [baseName === 'gradlew' ? './gradlew' : baseName, commandArguments];
+    return [baseName === 'gradlew' ? 'bash' : baseName, baseName === 'gradlew' ? ['gradlew', ...commandArguments] : commandArguments];
   }
 
   if (baseName === 'gradlew') {
