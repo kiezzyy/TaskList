@@ -17,7 +17,7 @@ jobs:
   build:
     name: Build ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-      strategy:
+    strategy:
       fail-fast: false
       matrix:
         include:
