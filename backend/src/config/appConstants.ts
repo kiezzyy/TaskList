@@ -1,6 +1,6 @@
 export const applicationInfo = {
   name: 'TaskList',
-  version: '1.1.2',
+  version: '1.1.3',
   schemaVersion: 2
 } as const;
 

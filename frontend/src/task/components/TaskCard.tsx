@@ -4,6 +4,7 @@ import { useWorkspaceStore } from '../hooks/useWorkspaceStore';
 import { Task } from '../services/types';
 import { formatDateTime } from '../utils/time';
 import { TaskTimer } from './TaskTimer';
+import { normalizeRichText, richTextToPlainText, RichTextEditor } from './RichTextEditor';
 
 export function TaskCard({ task, compact, onDragStart }: { task: Task; compact: boolean; onDragStart: (taskId: string) => void }) {
   const { updateTask, deleteTask } = useWorkspaceStore();
@@ -13,7 +14,7 @@ export function TaskCard({ task, compact, onDragStart }: { task: Task; compact: 
   const [description, setDescription] = useState(task.description ?? '');
 
   async function save() {
-    await updateTask(task.id, { name: name.trim(), description: description.trim() || null });
+    await updateTask(task.id, { name: name.trim(), description: normalizeRichText(description) || null });
     setEditing(false);
   }
 
@@ -53,14 +54,11 @@ export function TaskCard({ task, compact, onDragStart }: { task: Task; compact: 
             </div>
 
             {editing ? (
-              <textarea
-                className="mt-2 min-h-20 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
-                value={description}
-                onClick={stopCardClick}
-                onChange={(event) => setDescription(event.target.value)}
-              />
+              <div className="mt-2" onClick={stopCardClick}>
+                <RichTextEditor value={description} onChange={setDescription} placeholder="Add description" compact />
+              </div>
             ) : task.description && !compact ? (
-              <p className="mt-2 line-clamp-3 overflow-hidden whitespace-pre-wrap text-sm leading-6 text-zinc-600">{task.description}</p>
+              <p className="mt-2 line-clamp-3 overflow-hidden whitespace-pre-wrap text-sm leading-6 text-zinc-600">{richTextToPlainText(task.description)}</p>
             ) : null}
           </div>
 
@@ -127,7 +125,14 @@ function TaskDetailsModal({ task, open, onClose }: { task: Task; open: boolean; 
             <X size={18} />
           </button>
         </div>
-        <p className="whitespace-pre-wrap break-words text-sm leading-6 text-zinc-700">{task.description || 'No description provided.'}</p>
+        {task.description ? (
+          <div
+            className="whitespace-pre-wrap break-words text-sm leading-6 text-zinc-700 [&_ol]:list-decimal [&_ul]:list-disc [&_ol]:pl-6 [&_ul]:pl-6 [&_p]:my-0 [&_li]:my-1"
+            dangerouslySetInnerHTML={{ __html: task.description }}
+          />
+        ) : (
+          <p className="text-sm leading-6 text-zinc-700">No description provided.</p>
+        )}
       </section>
     </div>
   );

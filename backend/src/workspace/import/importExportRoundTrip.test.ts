@@ -62,7 +62,7 @@ describe('workspace export/import round trip', () => {
     await prisma.taskList.create({ data: { id: 'existing-list', name: 'Keep me', createdAt: new Date('2026-05-01T00:00:00.000Z'), updatedAt: new Date('2026-05-01T00:00:00.000Z') } });
     const invalidBackup = {
       metadata: {
-        appVersion: '1.1.2',
+        appVersion: '1.1.3',
         schemaVersion: 2,
         exportedAt: 'not-a-date',
         totalTaskCount: 0,
@@ -166,7 +166,7 @@ async function createFixtureWorkspace() {
   await prisma.workspaceMetadata.create({
     data: {
       id: 'metadata-main',
-      appVersion: '1.1.2',
+      appVersion: '1.1.3',
       schemaVersion: 2,
       lastExportAt: null,
       updatedAt: createdAt

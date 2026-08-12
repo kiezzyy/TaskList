@@ -2,11 +2,14 @@ import { FormEvent, useEffect, useState } from 'react';
 import { ChevronDown, Plus, Sparkles, X } from 'lucide-react';
 import { taskPriorityNames, taskStatusNames } from '../../shared/applicationConstants';
 import { getPriorityByName, getStatusByName, useWorkspaceStore } from '../hooks/useWorkspaceStore';
+import { normalizeRichText } from './RichTextEditor';
+import { RichTextEditor } from './RichTextEditor';
 
 export function TaskForm({ listId, open, onClose }: { listId: string; open: boolean; onClose: () => void }) {
   const { priorities, statuses, createTask } = useWorkspaceStore();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [statusId, setStatusId] = useState('');
   const [priorityId, setPriorityId] = useState('');
 
@@ -14,6 +17,7 @@ export function TaskForm({ listId, open, onClose }: { listId: string; open: bool
     if (open) {
       setName('');
       setDescription('');
+      setDescriptionExpanded(false);
       setStatusId(getStatusByName(statuses, taskStatusNames.todo)?.id ?? statuses[0]?.id ?? '');
       setPriorityId(getPriorityByName(priorities, taskPriorityNames.medium)?.id ?? priorities[0]?.id ?? '');
     }
@@ -27,7 +31,7 @@ export function TaskForm({ listId, open, onClose }: { listId: string; open: bool
     await createTask({
       listId,
       name: name.trim(),
-      description: description.trim() || null,
+      description: normalizeRichText(description) || null,
       statusId: statusId || undefined,
       priorityId: priorityId || undefined
     });
@@ -64,13 +68,13 @@ export function TaskForm({ listId, open, onClose }: { listId: string; open: bool
               autoFocus
             />
           </label>
-          <label className="grid gap-1.5 text-sm font-medium text-zinc-700">
+          <label className={`grid gap-1.5 text-sm font-medium text-zinc-700 ${descriptionExpanded ? 'md:col-span-2' : ''}`}>
             Description
-            <textarea
-              className="min-h-24 resize-none rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm outline-none transition focus:border-zinc-900 focus:bg-white"
+            <RichTextEditor
               value={description}
-              onChange={(event) => setDescription(event.target.value)}
+              onChange={setDescription}
               placeholder="Add context, notes, or acceptance details"
+              onActivate={() => setDescriptionExpanded(true)}
             />
           </label>
           <label className="grid gap-1.5 text-sm font-medium text-zinc-700">
