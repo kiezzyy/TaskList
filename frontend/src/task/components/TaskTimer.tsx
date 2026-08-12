@@ -7,7 +7,7 @@ import { activeElapsedSeconds, formatDuration } from '../utils/time';
 
 export function TaskTimer({ task }: { task: Task }) {
   const { startTimer, stopTimer } = useWorkspaceStore();
-  const completed = task.status.name === taskStatusNames.complete;
+  const canStartTimer = task.status.name === taskStatusNames.inProgress || task.status.name === taskStatusNames.reviewing;
   const [pending, setPending] = useState(false);
   const [displaySeconds, setDisplaySeconds] = useState(() => getDisplaySeconds(task));
 
@@ -30,7 +30,7 @@ export function TaskTimer({ task }: { task: Task }) {
 
   async function toggleTimer(event: MouseEvent<HTMLButtonElement>) {
     event.stopPropagation();
-    if (pending || (completed && !task.activeSession)) {
+    if (pending || (!canStartTimer && !task.activeSession)) {
       return;
     }
 
@@ -53,11 +53,11 @@ export function TaskTimer({ task }: { task: Task }) {
       <span className="font-mono tabular-nums">{formatDuration(displaySeconds)}</span>
       <button
         className={`grid h-6 w-6 place-items-center rounded transition ${
-          task.activeSession ? 'bg-zinc-900 text-white hover:bg-zinc-700' : completed ? 'bg-zinc-100 text-zinc-300' : 'bg-white text-zinc-700 hover:bg-zinc-100'
+          task.activeSession ? 'bg-zinc-900 text-white hover:bg-zinc-700' : canStartTimer ? 'bg-white text-zinc-700 hover:bg-zinc-100' : 'bg-zinc-100 text-zinc-300'
         }`}
-        title={task.activeSession ? 'Stop timer' : completed ? 'Completed tasks cannot start timers' : 'Start timer'}
+        title={task.activeSession ? 'Stop timer' : canStartTimer ? 'Start timer' : 'Timers are only available in Progress or Reviewing'}
         onClick={toggleTimer}
-        disabled={pending || (completed && !task.activeSession)}
+        disabled={pending || (!canStartTimer && !task.activeSession)}
       >
         {task.activeSession ? <Square size={12} /> : <Play size={12} />}
       </button>

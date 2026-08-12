@@ -124,7 +124,7 @@ export function App() {
             <div>
               <p className="font-semibold">Update available</p>
               <p className="text-amber-900/80">
-                TaskList {updateState.latestVersion} is ready. Open the release page to get the latest desktop installer or Android APK.
+                TaskList {updateState.latestVersion} is ready. Open the release page to get the latest desktop installer.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -185,7 +185,7 @@ function ReleaseUpdateDialog({
           </button>
         </div>
         <p className="mt-3 text-sm leading-6 text-zinc-600">
-          A newer release is available for desktop and Android. Open the release page to download the latest installer or APK, then reopen the app after installing.
+          A newer release is available for desktop. Open the release page to download the latest installer, then reopen the app after installing.
         </p>
         <div className="mt-4 grid gap-2 rounded-2xl bg-zinc-50 p-3 text-xs text-zinc-500">
           <p>

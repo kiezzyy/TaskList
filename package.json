@@ -1,6 +1,6 @@
 {
   "name": "tasklist-workspace",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "A local-first desktop workspace for kanban tasks, timers, and JSON backups.",
   "author": "TaskList",
   "private": true,
@@ -13,16 +13,12 @@
     "dev:electron": "tsc -p electron/tsconfig.json && wait-on http://localhost:5173 http://localhost:4000/api/health && electron .",
     "dev": "concurrently -k \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:electron\"",
     "build": "npm run build --prefix backend && npm run build --prefix frontend && tsc -p electron/tsconfig.json",
-    "mobile:add:android": "npx cap add android",
-    "mobile:build": "npm run build --prefix frontend && npx cap sync android",
-    "mobile:apk": "node scripts/build-mobile-apk.mjs",
-    "mobile:open:android": "npx cap open android",
     "test": "npm run test --prefix backend",
     "package": "npm run build && electron-builder --dir --publish never",
     "dist": "npm run build && electron-builder --publish never",
-  "dist:win": "npm run build && electron-builder --win nsis --publish never",
-  "dist:mac": "npm run build && electron-builder --mac dmg --publish never",
-  "dist:linux": "npm run build && electron-builder --linux AppImage --publish never"
+    "dist:win": "npm run build && electron-builder --win nsis --publish never",
+    "dist:mac": "npm run build && electron-builder --mac dmg --publish never",
+    "dist:linux": "npm run build && electron-builder --linux AppImage --publish never"
   },
   "build": {
     "appId": "com.tasklist.workspace",
@@ -79,9 +75,6 @@
     }
   },
   "devDependencies": {
-    "@capacitor/android": "^6.1.2",
-    "@capacitor/cli": "^6.1.2",
-    "@capacitor/core": "^6.1.2",
     "@types/node": "^22.9.0",
     "concurrently": "^9.1.0",
     "electron": "^42.2.0",

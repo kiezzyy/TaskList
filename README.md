@@ -5,7 +5,6 @@ TaskList is a production-oriented workspace platform for tasks, history, timers,
 It ships as one shared TypeScript codebase with:
 
 - Website deployment
-- Android APK deployment through Capacitor
 - Live-update-friendly frontend loading
 - SQLite for local development
 - PostgreSQL-ready backend persistence
@@ -16,7 +15,6 @@ It ships as one shared TypeScript codebase with:
 - Frontend: React, TypeScript, Vite, Tailwind CSS, Zustand
 - Backend: Node.js, Express, Prisma ORM
 - Database: SQLite for development, PostgreSQL for production
-- Mobile: Capacitor for Android APK packaging
 
 ## Getting Started
 
@@ -87,36 +85,6 @@ The frontend will use:
 - the current site origin plus `/api` in production browser builds
 - the packaged Electron API bridge when loaded from file mode
 
-## Android APK
-
-TaskList uses Capacitor for Android packaging and the same frontend codebase as the website.
-
-1. Build the frontend:
-
-```bash
-npm run build --prefix frontend
-```
-
-2. Sync the Capacitor Android project:
-
-```bash
-npm run mobile:build
-```
-
-3. Build the APK:
-
-```bash
-npm run mobile:apk
-```
-
-To point the Android app at a live deployed web frontend for instant UI updates, set:
-
-```bash
-TASKLIST_WEB_URL=https://your-deployed-tasklist.example
-```
-
-Then re-run the sync/build step.
-
 ## Live Updates
 
 TaskList is structured to pick up UI and behavior updates without a reinstall when the frontend is hosted remotely.
@@ -125,7 +93,7 @@ The app supports:
 
 - backend version checks through `/api/health`
 - refresh prompts when a newer build is detected
-- remote frontend loading for the Android shell when `TASKLIST_WEB_URL` is configured
+- remote frontend loading when the frontend is hosted on a live deployment
 
 ## Import and Export
 
@@ -183,9 +151,6 @@ TaskList/
       database/
       middleware/
       config/
-  mobile/
-    capacitor.config.ts
-    android/
 ```
 
 ## Security
@@ -203,4 +168,3 @@ TaskList includes:
 
 - No single file should exceed 800 lines.
 - Keep new features split into components, services, hooks, validators, and utilities.
-- If you publish the Android shell with remote web assets, users get frontend updates without reinstalling the APK.
