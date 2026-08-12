@@ -69,6 +69,37 @@ jobs:
           path: ${{ matrix.artifact }}
           if-no-files-found: error
 
+      - name: Remove legacy Android asset
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const oldTag = 'v1.1.1';
+            const assetName = 'TaskList-1.1.1-android.apk';
+
+            try {
+              const release = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: oldTag
+              });
+
+              const asset = release.data.assets.find((item) => item.name === assetName);
+              if (!asset) {
+                core.info(`No ${assetName} asset found on ${oldTag}.`);
+                return;
+              }
+
+              await github.rest.repos.deleteReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                asset_id: asset.id
+              });
+              core.info(`Deleted ${assetName} from ${oldTag}.`);
+            } catch (error) {
+              core.warning(`Legacy Android asset cleanup skipped: ${error.message}`);
+            }
+
       - name: Attach binaries to GitHub Release
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
         uses: softprops/action-gh-release@v2
