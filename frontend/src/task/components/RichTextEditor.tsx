@@ -14,18 +14,21 @@ type RichTextEditorProps = {
   onChange: (value: string) => void;
   placeholder: string;
   compact?: boolean;
-  onActivate?: () => void;
+  onFocusChange?: (focused: boolean) => void;
 };
 
 const allowedTags = new Set(['DIV', 'P', 'BR', 'B', 'STRONG', 'I', 'EM', 'U', 'S', 'UL', 'OL', 'LI', 'SPAN']);
 const alignmentValues = new Set(['left', 'center', 'right', 'justify']);
 
-export function RichTextEditor({ value, onChange, placeholder, compact = false, onActivate }: RichTextEditorProps) {
+export function RichTextEditor({ value, onChange, placeholder, compact = false, onFocusChange }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
+    if (isFocused) {
+      return;
+    }
+
     const editor = editorRef.current;
     if (!editor) {
       return;
@@ -78,32 +81,32 @@ export function RichTextEditor({ value, onChange, placeholder, compact = false, 
 
   return (
     <div className="grid gap-2">
-      <div className={`flex flex-wrap gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1 ${compact && !isFocused && !isExpanded ? 'opacity-80' : ''}`}>
-        {toolbarButtons.map((button) => {
-          const Icon = button.icon;
-          return (
-            <button
-              key={button.title}
-              type="button"
-              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-transparent px-2.5 text-[11px] font-medium text-zinc-600 transition hover:border-zinc-200 hover:bg-white hover:text-zinc-950"
-              title={button.title}
-              onMouseDown={(event) => {
-                event.preventDefault();
-                setIsExpanded(true);
-                onActivate?.();
-                button.action();
-              }}
-            >
-              <Icon size={14} />
-              <span className="hidden sm:inline">{button.title}</span>
-            </button>
-          );
-        })}
-      </div>
+      {isFocused ? (
+        <div className="flex flex-wrap gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1">
+          {toolbarButtons.map((button) => {
+            const Icon = button.icon;
+            return (
+              <button
+                key={button.title}
+                type="button"
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-transparent px-2.5 text-[11px] font-medium text-zinc-600 transition hover:border-zinc-200 hover:bg-white hover:text-zinc-950"
+                title={button.title}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  button.action();
+                }}
+              >
+                <Icon size={14} />
+                <span className="hidden sm:inline">{button.title}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
       <div
         className={`relative rounded-lg border bg-zinc-50 text-sm transition ${
-          isFocused || isExpanded ? 'min-h-56 border-zinc-900 bg-white' : 'min-h-28 border-zinc-200'
+          isFocused ? 'min-h-56 border-zinc-900 bg-white' : 'min-h-28 border-zinc-200'
         } ${compact ? 'min-h-32' : ''}`}
       >
         {showPlaceholder ? <div className="pointer-events-none absolute left-3 top-3 text-zinc-400">{placeholder}</div> : null}
@@ -114,12 +117,12 @@ export function RichTextEditor({ value, onChange, placeholder, compact = false, 
           suppressContentEditableWarning
           onBlur={() => {
             setIsFocused(false);
+            onFocusChange?.(false);
             handleInput();
           }}
           onFocus={() => {
             setIsFocused(true);
-            setIsExpanded(true);
-            onActivate?.();
+            onFocusChange?.(true);
           }}
           onInput={handleInput}
         />

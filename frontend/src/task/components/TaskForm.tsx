@@ -74,7 +74,7 @@ export function TaskForm({ listId, open, onClose }: { listId: string; open: bool
               value={description}
               onChange={setDescription}
               placeholder="Add context, notes, or acceptance details"
-              onActivate={() => setDescriptionExpanded(true)}
+              onFocusChange={setDescriptionExpanded}
             />
           </label>
           <label className="grid gap-1.5 text-sm font-medium text-zinc-700">
