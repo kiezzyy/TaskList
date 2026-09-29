@@ -5,7 +5,7 @@ export const applicationInfo = {
 } as const;
 
 export const networkDefaults = {
-  backendPort: 5000,
+  backendPort: 4000,
   backendHost: '127.0.0.1',
   frontendOrigin: 'http://localhost:5173'
 } as const;

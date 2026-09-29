@@ -1,6 +1,11 @@
 import { localApiDefaults } from './applicationConstants';
 
 function getApiBase() {
+  const envBase = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_TASKLIST_API_BASE_URL : undefined;
+  if (typeof envBase === 'string' && envBase.trim().length > 0) {
+    return envBase.replace(/\/$/, '');
+  }
+
   if (typeof window === 'undefined') {
     return localApiDefaults.developmentBaseUrl;
   }
@@ -10,8 +15,9 @@ function getApiBase() {
     return `http://${localApiDefaults.packagedHost}:${apiPort}/api`;
   }
 
-  const isLocalDevHost = window.location.hostname === 'localhost' && window.location.port === '5173';
-  if (isLocalDevHost) {
+  const hostname = window.location.hostname;
+  const isLoopback = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1';
+  if (isLoopback) {
     return localApiDefaults.developmentBaseUrl;
   }
 
@@ -24,11 +30,14 @@ export function getConfiguredApiBase() {
 
 export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const apiBase = getApiBase();
+  const hasBody = options.body !== undefined && options.body !== null;
+  const method = (options.method ?? 'GET').toUpperCase();
+  const needsJsonContentType = hasBody || method === 'POST' || method === 'PATCH' || method === 'PUT';
 
   const response = await fetch(`${apiBase}${path}`, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      ...(needsJsonContentType ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers
     }
   });
@@ -55,12 +64,13 @@ async function readErrorMessage(response: Response, apiBase: string) {
     return buildUnexpectedResponseError(await response.text(), apiBase);
   }
 
-  const payload = (await response.json().catch(() => null)) as { message?: string; details?: string[] } | null;
-  return payload?.details?.join('\n') || payload?.message || `Request failed with status ${response.status}.`;
+  const payload = (await response.json().catch(() => null)) as { message?: string; details?: string[] | string } | null;
+  const detailsText = Array.isArray(payload?.details) ? payload.details.join('\n') : typeof payload?.details === 'string' ? payload.details : '';
+  return detailsText || payload?.message || `Request failed with status ${response.status}.`;
 }
 
 function buildUnexpectedResponseError(responseText: string, apiBase: string) {
-  const trimmedResponse = responseText.trimStart();
+  const trimmedResponse = responseText.trimStart().toLowerCase();
   if (trimmedResponse.startsWith('<!doctype') || trimmedResponse.startsWith('<html')) {
     return `TaskList reached HTML instead of JSON at ${apiBase}. Check that the backend is running and the API base is correct.`;
   }

@@ -8,6 +8,7 @@ export const taskApi = {
   createList: (name: string) => apiRequest<TaskList>(apiRoutes.lists, post({ name })),
   renameList: (id: string, name: string) => apiRequest<TaskList>(apiRoutes.list(id), patch({ name })),
   deleteList: (id: string) => apiRequest(apiRoutes.list(id), { method: 'DELETE' }),
+  restoreList: (id: string) => apiRequest<TaskList>(apiRoutes.restoreList(id), post({})),
   createTask: (input: { listId: string; name: string; description?: string | null; statusId?: string; priorityId?: string }) =>
     apiRequest<Task>(apiRoutes.tasks, post(input)),
   updateTask: (id: string, input: Partial<{ name: string; description: string | null; statusId: string; priorityId: string }>) =>

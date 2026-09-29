@@ -1,4 +1,4 @@
-import { ChevronDown, Clock3, X } from 'lucide-react';
+import { ChevronDown, Clock3, RotateCcw, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useWorkspaceStore } from '../../task/hooks/useWorkspaceStore';
 import { ActivityEvent, TaskList } from '../../task/services/types';
@@ -55,21 +55,78 @@ function HistoryGroup({ group }: { group: { id: string; name: string; events: Ac
       <div className={`grid overflow-hidden transition-all duration-200 ease-out ${expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
         <div className="space-y-2 border-t border-zinc-100 p-3">
           {group.events.map((event) => (
-            <div key={event.id} className="rounded-xl bg-zinc-50 p-3 text-sm transition hover:bg-zinc-100/80 hover:shadow-sm">
-              <div className="flex items-start gap-2">
-                <Clock3 className="mt-0.5 shrink-0 text-zinc-400" size={14} />
-                <div className="min-w-0">
-                  <p className="font-medium text-zinc-800">{event.message}</p>
-                  <p className="mt-1 text-xs text-zinc-500">{formatDateTime(event.createdAt)}</p>
-                </div>
-              </div>
-            </div>
+            <HistoryEvent key={event.id} event={event} />
           ))}
           {group.events.length === 0 ? <p className="px-1 py-2 text-sm text-zinc-500">No activity recorded for this tab yet.</p> : null}
         </div>
       </div>
     </section>
   );
+}
+
+function HistoryEvent({ event }: { event: ActivityEvent }) {
+  const { recycleBin, restoreTask, restoreList } = useWorkspaceStore();
+  const [restoring, setRestoring] = useState(false);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+
+  const restorableKind = event.type === 'deleted' && event.entityId ? restorableEntity(event.entity) : null;
+  const restorable =
+    restorableKind && event.entityId
+      ? recycleBin.some((item) => item.entity === restorableKind && item.entityId === event.entityId)
+      : false;
+
+  async function restore() {
+    if (!event.entityId || !restorableKind) {
+      return;
+    }
+    setRestoring(true);
+    setRestoreError(null);
+    try {
+      if (restorableKind === 'task') {
+        await restoreTask(event.entityId);
+      } else {
+        await restoreList(event.entityId);
+      }
+    } catch (error) {
+      setRestoreError(error instanceof Error ? error.message : 'Restore failed.');
+    } finally {
+      setRestoring(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl bg-zinc-50 p-3 text-sm transition hover:bg-zinc-100/80 hover:shadow-sm">
+      <div className="flex items-start gap-2">
+        <Clock3 className="mt-0.5 shrink-0 text-zinc-400" size={14} />
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-zinc-800">{event.message}</p>
+          <p className="mt-1 text-xs text-zinc-500">{formatDateTime(event.createdAt)}</p>
+          {restoreError ? <p className="mt-1 text-xs text-red-600">{restoreError}</p> : null}
+        </div>
+        {restorable ? (
+          <button
+            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-zinc-950 px-2.5 py-1 text-[11px] font-medium text-white transition hover:bg-zinc-800 disabled:opacity-60"
+            onClick={restore}
+            disabled={restoring}
+            title={restorableKind === 'task' ? 'Restore task' : 'Restore tab'}
+          >
+            <RotateCcw size={12} />
+            {restoring ? 'Restoring…' : 'Restore'}
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function restorableEntity(entity: string): 'task' | 'task_list' | null {
+  if (entity === 'task') {
+    return 'task';
+  }
+  if (entity === 'task_list') {
+    return 'task_list';
+  }
+  return null;
 }
 
 function groupHistoryByList(history: ActivityEvent[], lists: TaskList[]) {

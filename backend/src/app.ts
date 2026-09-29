@@ -13,11 +13,11 @@ import { workspaceRouter } from './workspace/routes.js';
 export function createServer() {
   const app = express();
 
-  app.use(helmet());
+  app.use(helmet({ crossOriginResourcePolicy: false }));
   app.use(
     cors({
       origin(origin, callback) {
-        if (config.allowFileOrigin && !origin) {
+        if (config.allowFileOrigin && (!origin || origin === 'null' || origin === 'file://' || origin.startsWith('file://'))) {
           callback(null, true);
           return;
         }

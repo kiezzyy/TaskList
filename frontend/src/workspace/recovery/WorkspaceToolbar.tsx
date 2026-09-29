@@ -14,15 +14,11 @@ type PendingImport = {
 export function WorkspaceToolbar({
   themeMode,
   onToggleTheme,
-  serverHealth,
-  updateAvailable,
-  onRefreshUpdate
+  serverHealth
 }: {
   themeMode: ThemeMode;
   onToggleTheme: () => void;
   serverHealth: ServerHealth | null;
-  updateAvailable: boolean;
-  onRefreshUpdate: () => void;
 }) {
   const { lists, selectedListId, setSelectedListId, createList, renameList, deleteList, load } = useWorkspaceStore();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -130,11 +126,6 @@ export function WorkspaceToolbar({
               <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[11px] font-medium text-zinc-600">
                 {serverHealth ? `${serverHealth.app} ${serverHealth.version}` : 'Health check pending'}
               </span>
-              {updateAvailable ? (
-                <button className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900 transition hover:bg-amber-100" onClick={onRefreshUpdate} type="button">
-                  Open release
-                </button>
-              ) : null}
             </div>
             {pendingImport ? (
               <div className="mt-2 flex flex-wrap gap-2">

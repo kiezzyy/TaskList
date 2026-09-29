@@ -26,7 +26,10 @@
   --app-border: #27272a;
   --app-text: #f4f4f5;
   --app-text-muted: #a1a1aa;
-  --app-accent: #fafafa;
+  --app-accent: #e9e6e0;
+  --app-accent-contrast: #1c1917;
+  --app-accent-hover: #d8d4cc;
+  --app-accent-hover-soft: #efede8;
   --app-danger-surface: rgba(127, 29, 29, 0.25);
   --app-danger-border: #7f1d1d;
   --app-danger-text: #fca5a5;
@@ -75,7 +78,135 @@ button:disabled {
 
 :root[data-theme='dark'] .bg-zinc-950 {
   background-color: var(--app-accent) !important;
-  color: #09090b !important;
+  color: var(--app-accent-contrast) !important;
+}
+
+:root[data-theme='dark'] .bg-zinc-900 {
+  background-color: var(--app-accent) !important;
+  color: var(--app-accent-contrast) !important;
+}
+
+:root[data-theme='dark'] .bg-white\/60 {
+  background-color: rgb(24 24 27 / 0.6) !important;
+}
+
+:root[data-theme='dark'] .bg-violet-50\/60 {
+  background-color: rgb(139 92 246 / 0.12) !important;
+}
+
+:root[data-theme='dark'] .bg-amber-50\/70 {
+  background-color: rgb(251 191 36 / 0.12) !important;
+}
+
+:root[data-theme='dark'] .bg-cyan-50\/70 {
+  background-color: rgb(34 211 238 / 0.1) !important;
+}
+
+:root[data-theme='dark'] .bg-emerald-50\/70 {
+  background-color: rgb(52 211 153 / 0.1) !important;
+}
+
+:root[data-theme='dark'] .board-hero-card {
+  background: var(--app-surface-soft) !important;
+  border-color: var(--app-border) !important;
+}
+
+:root[data-theme='dark'] .text-zinc-600 {
+  color: var(--app-text-muted) !important;
+}
+
+:root[data-theme='dark'] .group:hover .group-hover\:text-zinc-500 {
+  color: var(--app-text-muted) !important;
+}
+
+:root[data-theme='dark'] .group:hover .group-hover\:text-zinc-700 {
+  color: var(--app-text) !important;
+}
+
+:root[data-theme='dark'] .border-zinc-300 {
+  border-color: var(--app-border) !important;
+}
+
+:root[data-theme='dark'] .border-red-100 {
+  border-color: var(--app-danger-border) !important;
+}
+
+:root[data-theme='dark'] .text-red-600 {
+  color: var(--app-danger-text) !important;
+}
+
+:root[data-theme='dark'] .bg-amber-50 {
+  background-color: rgb(120 53 15 / 0.28) !important;
+}
+
+:root[data-theme='dark'] .border-amber-200 {
+  border-color: #92400e !important;
+}
+
+:root[data-theme='dark'] .text-amber-950 {
+  color: #fde68a !important;
+}
+
+:root[data-theme='dark'] .text-amber-900\/80 {
+  color: #fcd34d !important;
+}
+
+:root[data-theme='dark'] .bg-amber-950 {
+  background-color: #451a03 !important;
+  color: #fef3c7 !important;
+}
+
+:root[data-theme='dark'] .hover\:bg-zinc-50:hover {
+  background-color: #1f1f23 !important;
+}
+
+:root[data-theme='dark'] .hover\:bg-zinc-100:hover {
+  background-color: #26262b !important;
+}
+
+:root[data-theme='dark'] .hover\:bg-zinc-100\/80:hover {
+  background-color: rgb(38 38 43 / 0.8) !important;
+}
+
+:root[data-theme='dark'] .hover\:bg-white:hover {
+  background-color: var(--app-surface-soft) !important;
+}
+
+:root[data-theme='dark'] .hover\:bg-red-50:hover {
+  background-color: rgb(127 29 29 / 0.35) !important;
+}
+
+:root[data-theme='dark'] .hover\:bg-amber-100:hover {
+  background-color: rgb(120 53 15 / 0.5) !important;
+}
+
+:root[data-theme='dark'] .hover\:bg-zinc-700:hover {
+  background-color: var(--app-accent-hover-soft) !important;
+}
+
+:root[data-theme='dark'] .hover\:bg-zinc-800:hover {
+  background-color: var(--app-accent-hover) !important;
+}
+
+:root[data-theme='dark'] .hover\:bg-amber-900:hover {
+  background-color: #78350f !important;
+}
+
+:root[data-theme='dark'] .hover\:border-zinc-200:hover,
+:root[data-theme='dark'] .hover\:border-zinc-300:hover {
+  border-color: var(--app-border) !important;
+}
+
+:root[data-theme='dark'] .hover\:text-zinc-950:hover {
+  color: var(--app-text) !important;
+}
+
+:root[data-theme='dark'] .focus\:bg-white:focus {
+  background-color: var(--app-surface-soft) !important;
+}
+
+:root[data-theme='dark'] .focus\:border-zinc-900:focus {
+  border-color: var(--app-accent) !important;
 }
 
 :root[data-theme='dark'] .text-zinc-950,

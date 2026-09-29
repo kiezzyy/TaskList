@@ -1,4 +1,4 @@
-import { app, BrowserWindow, session, shell } from 'electron';
+import { app, BrowserWindow, dialog, session, shell } from 'electron';
 import type { Server } from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -38,6 +38,7 @@ async function startDesktopBackend() {
     const httpServer = expressApp.listen(0, electronAppConfig.backendHost, () => {
       const address = httpServer.address();
       if (address && typeof address === 'object') {
+        desktopServer = httpServer;
         desktopPort = address.port;
         resolve(address.port);
         return;
@@ -45,13 +46,23 @@ async function startDesktopBackend() {
 
       reject(new Error('TaskList backend started without a TCP port.'));
     });
-    httpServer.once('error', reject);
-    desktopServer = httpServer;
+    httpServer.once('error', (error: Error) => {
+      desktopServer = null;
+      desktopPort = null;
+      reject(error);
+    });
   });
 }
 
 async function createWindow() {
-  const apiPort = await startDesktopBackend();
+  let apiPort: number | null = null;
+  try {
+    apiPort = await startDesktopBackend();
+  } catch (error) {
+    dialog.showErrorBox('TaskList backend failed to start', error instanceof Error ? error.message : String(error));
+    app.quit();
+    return;
+  }
 
   const window = new BrowserWindow({
     width: electronAppConfig.defaultWindowWidth,
@@ -110,6 +121,9 @@ app.whenReady().then(async () => {
       createWindow();
     }
   });
+}).catch((error) => {
+  dialog.showErrorBox('TaskList failed to start', error instanceof Error ? error.message : String(error));
+  app.quit();
 });
 
 app.on('window-all-closed', () => {

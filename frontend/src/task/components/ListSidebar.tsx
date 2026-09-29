@@ -6,7 +6,6 @@ import { formatDateTime } from '../utils/time';
 
 export function ListSidebar({ onOpenHistory }: { onOpenHistory: () => void }) {
   const { lists, selectedListId, recycleBin, restoreTask } = useWorkspaceStore();
-  const selectedList = lists.find((list) => list.id === selectedListId);
   const deletedTasks = useMemo(
     () => recycleBin.filter((item) => item.entity === 'task' && getRecycleListId(item.payload) === selectedListId),
     [recycleBin, selectedListId]
@@ -70,7 +69,6 @@ export function ListSidebar({ onOpenHistory }: { onOpenHistory: () => void }) {
             <p className="text-xs text-zinc-500">Tasks</p>
           </div>
         </div>
-        <p className="truncate text-xs text-zinc-500">{selectedList ? selectedList.name : 'No active tab'}</p>
       </section>
     </div>
   );

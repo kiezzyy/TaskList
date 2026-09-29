@@ -14,13 +14,15 @@ type RichTextEditorProps = {
   onChange: (value: string) => void;
   placeholder: string;
   compact?: boolean;
+  large?: boolean;
+  toolbarAlwaysVisible?: boolean;
   onFocusChange?: (focused: boolean) => void;
 };
 
 const allowedTags = new Set(['DIV', 'P', 'BR', 'B', 'STRONG', 'I', 'EM', 'U', 'S', 'UL', 'OL', 'LI', 'SPAN']);
 const alignmentValues = new Set(['left', 'center', 'right', 'justify']);
 
-export function RichTextEditor({ value, onChange, placeholder, compact = false, onFocusChange }: RichTextEditorProps) {
+export function RichTextEditor({ value, onChange, placeholder, compact = false, large = false, toolbarAlwaysVisible = false, onFocusChange }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -38,7 +40,7 @@ export function RichTextEditor({ value, onChange, placeholder, compact = false, 
     if (editor.innerHTML !== normalizedValue) {
       editor.innerHTML = normalizedValue;
     }
-  }, [value]);
+  }, [value, isFocused]);
 
   const toolbarButtons = useMemo(
     () => [
@@ -78,10 +80,11 @@ export function RichTextEditor({ value, onChange, placeholder, compact = false, 
   }
 
   const showPlaceholder = !value.trim() && !isFocused;
+  const showToolbar = toolbarAlwaysVisible || isFocused;
 
   return (
     <div className="grid gap-2">
-      {isFocused ? (
+      {showToolbar ? (
         <div className="flex flex-wrap gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1">
           {toolbarButtons.map((button) => {
             const Icon = button.icon;
@@ -105,9 +108,15 @@ export function RichTextEditor({ value, onChange, placeholder, compact = false, 
       ) : null}
 
       <div
-        className={`relative rounded-lg border bg-zinc-50 text-sm transition ${
-          isFocused ? 'min-h-56 border-zinc-900 bg-white' : 'min-h-28 border-zinc-200'
-        } ${compact ? 'min-h-32' : ''}`}
+        className={`relative rounded-lg border text-sm transition ${
+          large ? 'min-h-72' : isFocused ? 'min-h-56' : 'min-h-28'
+        } ${isFocused ? 'border-zinc-900 bg-white' : 'border-zinc-200 bg-zinc-50'} ${compact ? 'min-h-32' : ''} ${large && !isFocused ? 'bg-white' : ''}`}
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) {
+            event.preventDefault();
+            editorRef.current?.focus();
+          }
+        }}
       >
         {showPlaceholder ? <div className="pointer-events-none absolute left-3 top-3 text-zinc-400">{placeholder}</div> : null}
         <div

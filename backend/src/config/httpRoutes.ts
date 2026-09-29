@@ -8,6 +8,7 @@ export const taskRoutePaths = {
   state: '/state',
   lists: '/lists',
   listById: '/lists/:id',
+  listRestore: '/lists/:id/restore',
   tasks: '/tasks',
   taskById: '/tasks/:id',
   taskRestore: '/tasks/:id/restore',

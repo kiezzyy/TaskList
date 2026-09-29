@@ -15,6 +15,7 @@ import {
   deleteSubtask,
   deleteTask,
   getWorkspaceState,
+  restoreList,
   restoreTask,
   startTimer,
   stopTimer,
@@ -53,6 +54,10 @@ export const removeTask = asyncHandler(async (request, response) => {
 
 export const restoreDeletedTask = asyncHandler(async (request, response) => {
   response.json(await restoreTask(routeId(request.params.id)));
+});
+
+export const restoreDeletedList = asyncHandler(async (request, response) => {
+  response.json(await restoreList(routeId(request.params.id)));
 });
 
 export const createNewSubtask = asyncHandler(async (request, response) => {

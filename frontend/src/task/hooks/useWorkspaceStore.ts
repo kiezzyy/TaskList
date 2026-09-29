@@ -17,6 +17,7 @@ interface WorkspaceStore extends WorkspaceState {
   createList: (name: string) => Promise<void>;
   renameList: (id: string, name: string) => Promise<void>;
   deleteList: (id: string) => Promise<void>;
+  restoreList: (id: string) => Promise<void>;
   createTask: (input: { listId: string; name: string; description?: string | null; statusId?: string; priorityId?: string }) => Promise<void>;
   updateTask: (id: string, input: Partial<{ name: string; description: string | null; statusId: string; priorityId: string }>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
@@ -82,10 +83,14 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
   },
   renameList: async (id, name) => {
     const updated = await taskApi.renameList(id, name);
-    set((state) => ({ lists: state.lists.map((list) => (list.id === id ? { ...list, ...updated } : list)) }));
+    set((state) => ({ lists: state.lists.map((list) => (list.id === id ? { ...list, ...updated, tasks: list.tasks } : list)) }));
   },
   deleteList: async (id) => {
     await taskApi.deleteList(id);
+    await get().load();
+  },
+  restoreList: async (id) => {
+    await taskApi.restoreList(id);
     await get().load();
   },
   createTask: async (input) => {
@@ -138,10 +143,17 @@ function addTaskToList(lists: TaskList[], task: Task) {
 }
 
 function updateTaskInLists(lists: TaskList[], task: Task) {
-  return lists.map((list) => ({
-    ...list,
-    tasks: list.id === task.listId ? list.tasks.map((item) => (item.id === task.id ? task : item)) : list.tasks
-  }));
+  return lists.map((list) => {
+    if (list.id === task.listId) {
+      const exists = list.tasks.some((item) => item.id === task.id);
+      return {
+        ...list,
+        tasks: exists ? list.tasks.map((item) => (item.id === task.id ? task : item)) : [task, ...list.tasks]
+      };
+    }
+    const filtered = list.tasks.filter((item) => item.id !== task.id);
+    return filtered.length === list.tasks.length ? list : { ...list, tasks: filtered };
+  });
 }
 
 function getErrorMessage(error: unknown) {

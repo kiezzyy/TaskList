@@ -3,6 +3,7 @@ export const apiRoutes = {
   state: '/state',
   lists: '/lists',
   list: (listId: string) => `/lists/${listId}`,
+  restoreList: (listId: string) => `/lists/${listId}/restore`,
   tasks: '/tasks',
   task: (taskId: string) => `/tasks/${taskId}`,
   restoreTask: (taskId: string) => `/tasks/${taskId}/restore`,

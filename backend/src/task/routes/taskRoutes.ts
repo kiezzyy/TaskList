@@ -11,6 +11,7 @@ import {
   removeTask,
   removeTaskList,
   renameTaskList,
+  restoreDeletedList,
   restoreDeletedTask,
   startSubtaskTimer,
   startTaskTimer,
@@ -24,6 +25,7 @@ taskRouter.get(taskRoutePaths.state, getState);
 taskRouter.post(taskRoutePaths.lists, createTaskList);
 taskRouter.patch(taskRoutePaths.listById, renameTaskList);
 taskRouter.delete(taskRoutePaths.listById, removeTaskList);
+taskRouter.post(taskRoutePaths.listRestore, restoreDeletedList);
 taskRouter.post(taskRoutePaths.tasks, createNewTask);
 taskRouter.patch(taskRoutePaths.taskById, editTask);
 taskRouter.delete(taskRoutePaths.taskById, removeTask);

@@ -89,6 +89,91 @@ export async function deleteList(id: string) {
   await recordActivity('deleted', 'task_list', id, `Moved list "${list.name}" to recycle bin`);
 }
 
+export async function restoreList(id: string) {
+  const binItem = await prisma.recycleBinItem.findFirst({ where: { entity: 'task_list', entityId: id }, orderBy: { deletedAt: 'desc' } });
+  if (!binItem) {
+    throw notFound('Task list backup was not found');
+  }
+  const existing = await prisma.taskList.findUnique({ where: { id } });
+  if (existing) {
+    const error = new Error('Task list already exists');
+    Object.assign(error, { statusCode: 409 });
+    throw error;
+  }
+  const snapshot = parseTaskListSnapshot(binItem.payload);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.taskList.create({
+      data: { id: snapshot.id, name: snapshot.name, createdAt: new Date(snapshot.createdAt), updatedAt: new Date(snapshot.updatedAt) }
+    });
+    for (const snapshotTask of snapshot.tasks ?? []) {
+      const statusId = await resolveStatusId(tx, snapshotTask.status);
+      const priorityId = await resolvePriorityId(tx, snapshotTask.priority);
+      await tx.task.create({
+        data: {
+          id: snapshotTask.id,
+          listId: snapshot.id,
+          statusId,
+          priorityId,
+          name: snapshotTask.name,
+          description: snapshotTask.description,
+          createdAt: new Date(snapshotTask.createdAt),
+          updatedAt: new Date(snapshotTask.updatedAt)
+        }
+      });
+      for (const snapshotSubtask of snapshotTask.subtasks ?? []) {
+        const subtaskStatusId = await resolveStatusId(tx, snapshotSubtask.status);
+        await tx.subtask.create({
+          data: {
+            id: snapshotSubtask.id,
+            taskId: snapshotTask.id,
+            statusId: subtaskStatusId,
+            name: snapshotSubtask.name,
+            description: snapshotSubtask.description,
+            createdAt: new Date(snapshotSubtask.createdAt),
+            updatedAt: new Date(snapshotSubtask.updatedAt)
+          }
+        });
+        for (const snapshotSession of snapshotSubtask.sessions ?? []) {
+          await tx.taskSession.create({
+            data: {
+              id: snapshotSession.id,
+              taskId: null,
+              subtaskId: snapshotSubtask.id,
+              startedAt: new Date(snapshotSession.startedAt),
+              endedAt: snapshotSession.endedAt ? new Date(snapshotSession.endedAt) : null,
+              durationSeconds: snapshotSession.durationSeconds ?? 0
+            }
+          });
+        }
+      }
+      for (const snapshotSession of snapshotTask.sessions ?? []) {
+        await tx.taskSession.create({
+          data: {
+            id: snapshotSession.id,
+            taskId: snapshotTask.id,
+            subtaskId: null,
+            startedAt: new Date(snapshotSession.startedAt),
+            endedAt: snapshotSession.endedAt ? new Date(snapshotSession.endedAt) : null,
+            durationSeconds: snapshotSession.durationSeconds ?? 0
+          }
+        });
+      }
+    }
+    await tx.recycleBinItem.deleteMany({ where: { entity: 'task_list', entityId: id } });
+  });
+
+  await recordActivity('restored', 'task_list', id, `Restored tab "${snapshot.name}"`);
+  const restored = await prisma.taskList.findUnique({
+    where: { id },
+    include: { tasks: { where: { deletedAt: null }, include: taskInclude, orderBy: { updatedAt: 'desc' } } }
+  });
+  if (!restored) {
+    throw notFound('Task list was not found');
+  }
+  return { ...restored, tasks: restored.tasks.map(withComputedTask) };
+}
+
 export async function createTask(input: { listId: string; name: string; description?: string | null; statusId?: string; priorityId?: string }) {
   const [status, priority] = await Promise.all([
     input.statusId ? prisma.taskStatus.findUnique({ where: { id: input.statusId } }) : prisma.taskStatus.findUnique({ where: { name: taskStatusNames.todo } }),
@@ -106,6 +191,10 @@ export async function createTask(input: { listId: string; name: string; descript
 }
 
 export async function updateTask(id: string, input: Prisma.TaskUpdateInput) {
+  const previous = await prisma.task.findUnique({ where: { id }, include: { status: true } });
+  if (!previous) {
+    throw notFound('Task was not found');
+  }
   const task = await prisma.task.update({ where: { id }, data: input, include: taskInclude });
   await recordActivity('updated', 'task', id, `Updated task "${task.name}"`, task);
   if (!canTimerRun(task.status.name)) {
@@ -115,6 +204,17 @@ export async function updateTask(id: string, input: Prisma.TaskUpdateInput) {
       throw notFound('Task was not found');
     }
     return withComputedTask(refreshedTask);
+  }
+  if (previous.statusId !== task.statusId) {
+    try {
+      await startTimer({ taskId: id });
+    } catch {
+      return withComputedTask(task);
+    }
+    const refreshedTask = await prisma.task.findUnique({ where: { id }, include: taskInclude });
+    if (refreshedTask) {
+      return withComputedTask(refreshedTask);
+    }
   }
   return withComputedTask(task);
 }
@@ -159,6 +259,10 @@ export async function createSubtask(input: { taskId: string; name: string; descr
 }
 
 export async function updateSubtask(id: string, input: Prisma.SubtaskUpdateInput) {
+  const previous = await prisma.subtask.findUnique({ where: { id }, include: { status: true } });
+  if (!previous) {
+    throw notFound('Subtask was not found');
+  }
   const subtask = await prisma.subtask.update({ where: { id }, data: input, include: subtaskInclude });
   await recordActivity('updated', 'subtask', id, `Updated subtask "${subtask.name}"`, subtask);
   if (!canTimerRun(subtask.status.name)) {
@@ -168,6 +272,17 @@ export async function updateSubtask(id: string, input: Prisma.SubtaskUpdateInput
       throw notFound('Subtask was not found');
     }
     return refreshedSubtask;
+  }
+  if (previous.statusId !== subtask.statusId) {
+    try {
+      await startTimer({ subtaskId: id });
+    } catch {
+      return subtask;
+    }
+    const refreshedSubtask = await prisma.subtask.findUnique({ where: { id }, include: subtaskInclude });
+    if (refreshedSubtask) {
+      return refreshedSubtask;
+    }
   }
   return subtask;
 }
@@ -333,4 +448,97 @@ function notFound(message: string) {
   const error = new Error(message);
   Object.assign(error, { statusCode: 404 });
   return error;
+}
+
+type SnapshotSession = {
+  id: string;
+  startedAt: string;
+  endedAt: string | null;
+  durationSeconds?: number;
+};
+
+type SnapshotSubtask = {
+  id: string;
+  name: string;
+  description: string | null;
+  status?: { id?: string; name?: string };
+  sessions?: SnapshotSession[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+type SnapshotTask = {
+  id: string;
+  name: string;
+  description: string | null;
+  status?: { id?: string; name?: string };
+  priority?: { id?: string; name?: string };
+  subtasks?: SnapshotSubtask[];
+  sessions?: SnapshotSession[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+type SnapshotTaskList = {
+  id: string;
+  name: string;
+  tasks?: SnapshotTask[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+function parseTaskListSnapshot(payload: string): SnapshotTaskList {
+  try {
+    const snapshot = JSON.parse(payload) as SnapshotTaskList;
+    if (!snapshot || typeof snapshot.id !== 'string' || typeof snapshot.name !== 'string') {
+      throw new Error('Invalid task list backup');
+    }
+    return snapshot;
+  } catch {
+    const error = new Error('Task list backup is corrupted');
+    Object.assign(error, { statusCode: 422 });
+    throw error;
+  }
+}
+
+type TransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+async function resolveStatusId(tx: TransactionClient, reference: { id?: string; name?: string } | undefined) {
+  if (reference?.id) {
+    const byId = await tx.taskStatus.findUnique({ where: { id: reference.id } });
+    if (byId) {
+      return byId.id;
+    }
+  }
+  if (reference?.name) {
+    const byName = await tx.taskStatus.findUnique({ where: { name: reference.name } });
+    if (byName) {
+      return byName.id;
+    }
+  }
+  const fallback = await tx.taskStatus.findFirst({ orderBy: { sortOrder: 'asc' } });
+  if (fallback) {
+    return fallback.id;
+  }
+  throw notFound('Task status was not found');
+}
+
+async function resolvePriorityId(tx: TransactionClient, reference: { id?: string; name?: string } | undefined) {
+  if (reference?.id) {
+    const byId = await tx.taskPriority.findUnique({ where: { id: reference.id } });
+    if (byId) {
+      return byId.id;
+    }
+  }
+  if (reference?.name) {
+    const byName = await tx.taskPriority.findUnique({ where: { name: reference.name } });
+    if (byName) {
+      return byName.id;
+    }
+  }
+  const fallback = await tx.taskPriority.findFirst({ orderBy: { sortOrder: 'asc' } });
+  if (fallback) {
+    return fallback.id;
+  }
+  throw notFound('Task priority was not found');
 }

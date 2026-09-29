@@ -37,7 +37,11 @@ export function TaskBoard() {
   const orderedStatuses = useMemo(() => [...statuses].sort((first, second) => first.sortOrder - second.sortOrder), [statuses]);
 
   useEffect(() => {
-    window.localStorage.setItem(compactModeStorageKey, String(compactMode));
+    try {
+      window.localStorage.setItem(compactModeStorageKey, String(compactMode));
+    } catch {
+      // Ignore storage failures (private mode / quota).
+    }
   }, [compactMode]);
 
   if (!selectedList) {
@@ -56,13 +60,16 @@ export function TaskBoard() {
     if (!draggedTaskId) {
       return;
     }
-    await updateTask(draggedTaskId, { statusId });
-    setDraggedTaskId(null);
+    try {
+      await updateTask(draggedTaskId, { statusId });
+    } finally {
+      setDraggedTaskId(null);
+    }
   }
 
   return (
     <div id="workspace" className="flex min-h-0 flex-1 flex-col gap-4">
-      <div className="rounded-[1.5rem] border border-white/70 bg-gradient-to-br from-white via-zinc-50 to-zinc-100/80 p-4 shadow-sm shadow-zinc-200/50">
+      <div className="board-hero-card rounded-[1.5rem] border border-white/70 bg-gradient-to-br from-white via-zinc-50 to-zinc-100/80 p-4 shadow-sm shadow-zinc-200/50">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
@@ -112,9 +119,6 @@ export function TaskBoard() {
           >
             {compactMode ? <PanelTop className="transition-transform duration-200 rotate-180" size={17} /> : <LayoutGrid className="transition-transform duration-200" size={17} />}
           </button>
-          <button className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:-translate-y-0.5 hover:bg-zinc-50" onClick={() => setTaskModalOpen(true)}>
-            <Plus size={16} /> Add Item
-          </button>
           <button className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:-translate-y-0.5 hover:bg-zinc-800" onClick={() => setTaskModalOpen(true)}>
             <Plus size={16} /> Add Task
           </button>
@@ -141,7 +145,13 @@ export function TaskBoard() {
 }
 
 function sortColumnTasks(tasks: Task[]) {
-  return [...tasks].sort((first, second) => new Date(first.updatedAt).getTime() - new Date(second.updatedAt).getTime());
+  return [...tasks].sort((first, second) => {
+    const firstTime = new Date(first.updatedAt).getTime();
+    const secondTime = new Date(second.updatedAt).getTime();
+    const safeFirst = Number.isNaN(firstTime) ? 0 : firstTime;
+    const safeSecond = Number.isNaN(secondTime) ? 0 : secondTime;
+    return safeFirst - safeSecond;
+  });
 }
 
 function readStoredBoolean(key: string, fallback: boolean) {
@@ -149,13 +159,17 @@ function readStoredBoolean(key: string, fallback: boolean) {
     return fallback;
   }
 
-  const storedValue = window.localStorage.getItem(key);
-  if (storedValue === 'true') {
-    return true;
-  }
+  try {
+    const storedValue = window.localStorage.getItem(key);
+    if (storedValue === 'true') {
+      return true;
+    }
 
-  if (storedValue === 'false') {
-    return false;
+    if (storedValue === 'false') {
+      return false;
+    }
+  } catch {
+    return fallback;
   }
 
   return fallback;
